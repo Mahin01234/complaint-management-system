@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% block title %}SLA Monitor{% endblock %}
+{% block page_title %}SLA Monitor{% endblock %}
+
+{% block content %}
+<style>
+  .sla-hero {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border-radius: 16px;
+    padding: 26px 30px;
+    color: #fff;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .sla-hero::after {
+    content: ""; position: absolute;
+    width: 220px; height: 220px;
+    background: rgba(255,255,255,.08);
+    border-radius: 50%;
+    top: -90px; right: -60px;
+  }
+  .sla-hero h4 { font-weight: 700; margin-bottom: 6px; position: relative; z-index: 2; }
+  .sla-hero p { opacity: .9; margin: 0; font-size: .9rem; position: relative; z-index: 2; }
+  .sla-hero-stats {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 18px; position: relative; z-index: 2;
+  }
+  .sla-hero-chip {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 10px;
+    padding: 8px 14px;
+    backdrop-filter: blur(4px);
+  }
+  .sla-hero-chip .num { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+  .sla-hero-chip .lbl {
+    font-size: .72rem; opacity: .9;
+    text-transform: uppercase; letter-spacing: .3px;
+  }
+
+  .sla-tabs {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 6px;
+    border: 1px solid #eef0f4;
+    margin-bottom: 16px;
+  }
+  .sla-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: .85rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-decoration: none;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .sla-tab:hover { background: #f9fafb; color: #111827; }
+  .sla-tab.active { background: #4f46e5; color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+  .sla-tab .count {
+    display: inline-block;
+    background: rgba(0,0,0,.08);
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: .72rem;
+    margin-left: 5px;
+  }
+  .sla-tab.active .count { background: rgba(255,255,255,.25); }
+
+  .sla-card {
+    background: #fff;
+    border: 1px solid #eef0f4;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .sla-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .sla-card-head h6 {
+    font-weight: 700;
+    margin: 0;
+    font-size: .95rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sla-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-bottom: 1px solid #f5f7fb;
+    transition: background .1s;
+    text-decoration: none;
+    color: inherit;
+  }
+  .sla-row:last-child { border-bottom: 0; }
+  .sla-row:hover { background: #fafbfd; color: inherit; }
+  .sla-row.is-escalated { background: #fef2f2; }
+  .sla-row.is-escalated:hover { background: #fee2e2; }
+  .sla-row.is-overdue { background: #fff5f5; }
+  .sla-row.is-approaching { background: #fffbeb; }
+
+  .sla-priority {
+    width: 8px;
+    align-self: stretch;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .sla-priority.Urgent  { background: #ef4444; }
+  .sla-priority.High    { background: #f97316; }
+  .sla-priority.Medium  { background: #0ea5e9; }
+  .sla-priority.Low     { background: #6b7280; }
+
+  .sla-row-info { flex: 1; min-width: 0; }
+  .sla-row-title {
+    font-weight: 600;
+    font-size: .88rem;
+    color: #111827;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sla-row-meta {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    font-size: .72rem;
+    color: #6b7280;
+  }
+  .sla-row-meta i { margin-right: 3px; }
+
+  .sla-trk {
+    font-family: 'Courier New', monospace;
+    font-size: .74rem;
+    font-weight: 700;
+    background: #eef2ff;
+    color: #4f46e5;
+    padding: 2px 8px;
+    border-radius: 5px;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .sla-row-right {
+    text-align: right;
+    flex-shrink: 0;
+    min-width: 140px;
+  }
+  .sla-timer {
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1.1;
+    font-family: 'Courier New', monospace;
+  }
+  .sla-timer.danger { color: #dc2626; }
+  .sla-timer.warning { color: #d97706; }
+  .sla-timer.success { color: #059669; }
+  .sla-timer-label {
+    font-size: .7rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+
+  .sla-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #9ca3af;
+  }
+  .sla-empty-icon {
+    width: 80px; height: 80px;
+    margin: 0 auto 16px;
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #059669;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+  }
+  .sla-empty h5 { font-weight: 700; color: #111827; margin-bottom: 6px; }
+  .sla-empty p { color: #6b7280; font-size: .88rem; max-width: 380px; margin: 0 auto; }
+
+  .sla-compliance {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eef0f4;
+    margin-bottom: 12px;
+  }
+  .sla-compliance-circle {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(#10b981 0% var(--pct), #e5e7eb var(--pct) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .sla-compliance-circle::before {
+    content: "";
+    position: absolute;
+    width: 90px; height: 90px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .sla-compliance-num {
+    position: relative;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #111827;
+  }
+  .sla-compliance-label {
+    font-size: .82rem;
+    color: #6b7280;
+    text-align: center;
+  }
+
+  @media (max-width: 767.98px) {
+    .sla-row-right { min-width: auto; margin-top: 10px; width: 100%; text-align: left; border-top: 1px dashed #e5e7eb; padding-top: 10px; }
+    .sla-row { flex-direction: column; align-items: flex-start; }
+    .sla-hero { padding: 20px; }
+    .sla-tab { font-size: .78rem; padding: 8px 10px; }
+  }
+</style>
+
+<div class="sla-hero">
+  <h4><i class="bi bi-stopwatch-fill me-2"></i>SLA Monitor</h4>
+  <p>Real-time SLA tracking, auto-escalation, and compliance overview.</p>
+
+  <div class="sla-hero-stats">
+    <div class="sla-hero-chip">
+      <div class="num">{{ stats.overdue }}</div>
+      <div class="lbl">Overdue</div>
+    </div>
+    <div class="sla-hero-chip">
+      <div class="num">{{ stats.approaching }}</div>
+      <div class="lbl">Approaching</div>
+    </div>
+    <div class="sla-hero-chip">
+      <div class="num">{{ stats.escalated }}</div>
+      <div class="lbl">Escalated</div>
+    </div>
+    <div class="sla-hero-chip">
+      <div class="num">{{ stats.compliance_rate }}%</div>
+      <div class="lbl">Compliance</div>
+    </div>
+  </div>
+</div>
+
+{# Auto-escalation banner #}
+{% if newly_escalated > 0 %}
+<div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-3">
+  <i class="bi bi-exclamation-octagon-fill me-2"></i>
+  <strong>{{ newly_escalated }} complaint(s) auto-escalated</strong> on this page load.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  {# ============ MAIN CONTENT ============ #}
+  <div class="col-lg-9">
+
+    {# --- Tabs --- #}
+    <div class="sla-tabs">
+      <a href="{{ url_for('admin_sla', tab='overdue') }}" class="sla-tab {{ 'active' if tab == 'overdue' }}">
+        <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Overdue <span class="count">{{ stats.overdue }}</span>
+      </a>
+      <a href="{{ url_for('admin_sla', tab='approaching') }}" class="sla-tab {{ 'active' if tab == 'approaching' }}">
+        <i class="bi bi-clock-history text-warning me-1"></i> Approaching <span class="count">{{ stats.approaching }}</span>
+      </a>
+      <a href="{{ url_for('admin_sla', tab='escalated') }}" class="sla-tab {{ 'active' if tab == 'escalated' }}">
+        <i class="bi bi-arrow-up-circle-fill text-danger me-1"></i> Escalated <span class="count">{{ stats.escalated }}</span>
+      </a>
+      <a href="{{ url_for('admin_sla', tab='on_track') }}" class="sla-tab {{ 'active' if tab == 'on_track' }}">
+        <i class="bi bi-check-circle-fill text-success me-1"></i> On Track <span class="count">{{ stats.on_track }}</span>
+      </a>
+    </div>
+
+    {# --- Content --- #}
+    {% if tab == 'overdue' %}
+      {% if overdue_list %}
+        <div class="sla-card">
+          <div class="sla-card-head">
+            <h6 class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Overdue Complaints</h6>
+            <span class="badge bg-danger">{{ overdue_list|length }}</span>
+          </div>
+          {% for c in overdue_list %}
+            <a href="{{ url_for('complaint_detail', cid=c.id) }}" class="sla-row is-overdue">
+              <div class="sla-priority {{ c.priority }}"></div>
+              <div class="sla-row-info">
+                <div class="sla-row-title">
+                  <span class="sla-trk">{{ c.tracking_id }}</span>
+                  {{ c.title|truncate(50) }}
+                </div>
+                <div class="sla-row-meta">
+                  <span><i class="bi bi-person"></i>{{ c.user.name if c.user else '—' }}</span>
+                  <span><i class="bi bi-person-badge"></i>{{ c.officer.name if c.officer else 'Unassigned' }}</span>
+                  <span><i class="bi bi-tag"></i>{{ c.priority }}</span>
+                  <span><i class="bi bi-stopwatch"></i>{{ c.sla_deadline.strftime('%d %b, %I:%M %p') }}</span>
+                </div>
+              </div>
+              <div class="sla-row-right">
+                <div class="sla-timer danger live-timer" data-deadline="{{ c.sla_deadline.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                  +{{ ((now_utc - c.sla_deadline).total_seconds() / 3600)|round(1) }}h
+                </div>
+                <div class="sla-timer-label">Overdue</div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="sla-card sla-empty">
+          <div class="sla-empty-icon"><i class="bi bi-check-circle-fill"></i></div>
+          <h5>No Overdue Complaints</h5>
+          <p>All active complaints are within their SLA deadlines. Great job!</p>
+        </div>
+      {% endif %}
+
+    {% elif tab == 'approaching' %}
+      {% if approaching_list %}
+        <div class="sla-card">
+          <div class="sla-card-head">
+            <h6 class="text-warning"><i class="bi bi-clock-history"></i> Approaching Deadline (under 2 hours)</h6>
+            <span class="badge bg-warning">{{ approaching_list|length }}</span>
+          </div>
+          {% for c in approaching_list %}
+            <a href="{{ url_for('complaint_detail', cid=c.id) }}" class="sla-row is-approaching">
+              <div class="sla-priority {{ c.priority }}"></div>
+              <div class="sla-row-info">
+                <div class="sla-row-title">
+                  <span class="sla-trk">{{ c.tracking_id }}</span>
+                  {{ c.title|truncate(50) }}
+                </div>
+                <div class="sla-row-meta">
+                  <span><i class="bi bi-person"></i>{{ c.user.name if c.user else '—' }}</span>
+                  <span><i class="bi bi-person-badge"></i>{{ c.officer.name if c.officer else 'Unassigned' }}</span>
+                  <span><i class="bi bi-tag"></i>{{ c.priority }}</span>
+                  <span><i class="bi bi-stopwatch"></i>{{ c.sla_deadline.strftime('%d %b, %I:%M %p') }}</span>
+                </div>
+              </div>
+              <div class="sla-row-right">
+                <div class="sla-timer warning live-timer" data-deadline="{{ c.sla_deadline.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                  {{ ((c.sla_deadline - now_utc).total_seconds() / 3600)|round(1) }}h
+                </div>
+                <div class="sla-timer-label">Time left</div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="sla-card sla-empty">
+          <div class="sla-empty-icon"><i class="bi bi-check-circle-fill"></i></div>
+          <h5>No Approaching Deadlines</h5>
+          <p>No complaints are due in the next 2 hours.</p>
+        </div>
+      {% endif %}
+
+    {% elif tab == 'escalated' %}
+      {% if escalated_list %}
+        <div class="sla-card">
+          <div class="sla-card-head">
+            <h6 class="text-danger"><i class="bi bi-arrow-up-circle-fill"></i> Escalated to Higher Authority</h6>
+            <span class="badge bg-danger">{{ escalated_list|length }}</span>
+          </div>
+          {% for c in escalated_list %}
+            <a href="{{ url_for('complaint_detail', cid=c.id) }}" class="sla-row is-escalated">
+              <div class="sla-priority {{ c.priority }}"></div>
+              <div class="sla-row-info">
+                <div class="sla-row-title">
+                  <span class="sla-trk">{{ c.tracking_id }}</span>
+                  {{ c.title|truncate(50) }}
+                  <span class="badge bg-danger ms-1" style="font-size:.65rem;">
+                    <i class="bi bi-arrow-up-circle-fill"></i> ESCALATED
+                  </span>
+                </div>
+                <div class="sla-row-meta">
+                  <span><i class="bi bi-person"></i>{{ c.user.name if c.user else '—' }}</span>
+                  <span><i class="bi bi-person-badge"></i>{{ c.officer.name if c.officer else 'Unassigned' }}</span>
+                  <span><i class="bi bi-flag"></i>{{ c.status }}</span>
+                  {% if c.escalated_at %}
+                  <span><i class="bi bi-clock"></i>Escalated {{ c.escalated_at.strftime('%d %b, %I:%M %p') }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="sla-row-right">
+                <!-- ⬇️ এখানে লাইভ টাইমার যুক্ত করা হয়েছে -->
+                <div class="sla-timer danger live-timer" data-deadline="{{ c.sla_deadline.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                  +{{ ((now_utc - c.sla_deadline).total_seconds() / 3600)|round(1) }}h
+                </div>
+                <div class="sla-timer-label text-danger">Overdue</div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="sla-card sla-empty">
+          <div class="sla-empty-icon"><i class="bi bi-shield-check"></i></div>
+          <h5>No Escalated Complaints</h5>
+          <p>No complaint has been escalated to higher authority yet.</p>
+        </div>
+      {% endif %}
+
+    {% elif tab == 'on_track' %}
+      {% if on_track_list %}
+        <div class="sla-card">
+          <div class="sla-card-head">
+            <h6 class="text-success"><i class="bi bi-check-circle-fill"></i> On Track</h6>
+            <span class="badge bg-success">{{ on_track_list|length }}</span>
+          </div>
+          {% for c in on_track_list %}
+            <a href="{{ url_for('complaint_detail', cid=c.id) }}" class="sla-row">
+              <div class="sla-priority {{ c.priority }}"></div>
+              <div class="sla-row-info">
+                <div class="sla-row-title">
+                  <span class="sla-trk">{{ c.tracking_id }}</span>
+                  {{ c.title|truncate(50) }}
+                </div>
+                <div class="sla-row-meta">
+                  <span><i class="bi bi-person"></i>{{ c.user.name if c.user else '—' }}</span>
+                  <span><i class="bi bi-person-badge"></i>{{ c.officer.name if c.officer else 'Unassigned' }}</span>
+                  <span><i class="bi bi-tag"></i>{{ c.priority }}</span>
+                  <span><i class="bi bi-stopwatch"></i>{{ c.sla_deadline.strftime('%d %b, %I:%M %p') }}</span>
+                </div>
+              </div>
+              <div class="sla-row-right">
+                <div class="sla-timer success live-timer" data-deadline="{{ c.sla_deadline.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                  {{ ((c.sla_deadline - now_utc).total_seconds() / 3600)|round(1) }}h
+                </div>
+                <div class="sla-timer-label">Time left</div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="sla-card sla-empty">
+          <div class="sla-empty-icon"><i class="bi bi-inbox"></i></div>
+          <h5>No Active Complaints</h5>
+          <p>There are no on-track active complaints right now.</p>
+        </div>
+      {% endif %}
+    {% endif %}
+
+  </div>
+
+  {# ============ SIDEBAR ============ #}
+  <div class="col-lg-3">
+
+    {# Compliance circle #}
+    <div class="sla-compliance">
+      <div class="sla-compliance-circle" style="--pct: {{ stats.compliance_rate }}%;">
+        <span class="sla-compliance-num">{{ stats.compliance_rate }}%</span>
+      </div>
+      <div class="sla-compliance-label">
+        <strong>{{ stats.resolved_on_time }}</strong> of {{ stats.resolved_total }} resolved<br>
+        within SLA deadline
+      </div>
+    </div>
+
+    {# SLA rules #}
+    <div class="sla-card">
+      <h6 class="fw-bold mb-3" style="font-size:.88rem;">
+        <i class="bi bi-info-circle text-primary me-1"></i> SLA Rules
+      </h6>
+      {% for prio, hours in SLA_HOURS.items() %}
+        <div class="d-flex justify-content-between align-items-center py-1 small border-bottom" style="border-color:#f3f4f6!important;">
+          <span class="badge bg-{{ {'Urgent':'danger','High':'warning text-dark','Medium':'info','Low':'secondary'}[prio] }}">{{ prio }}</span>
+          <span class="fw-semibold">{{ hours }}h</span>
+        </div>
+      {% endfor %}
+      <div class="mt-2 pt-2 small text-muted" style="font-size:.72rem;">
+        <i class="bi bi-arrow-up-circle-fill text-danger"></i>
+        Exceeded SLA → auto-escalated to higher authority.
+      </div>
+    </div>
+
+    {# Manual check #}
+    <div class="sla-card">
+      <h6 class="fw-bold mb-2" style="font-size:.88rem;">
+        <i class="bi bi-arrow-clockwise text-primary me-1"></i> Manual Check
+      </h6>
+      <p class="small text-muted mb-2" style="font-size:.74rem;">
+        Auto-escalation runs on every dashboard/sla page load. Use this to force-check now.
+      </p>
+      <form method="post" action="{{ url_for('admin_sla_check') }}">
+        <button type="submit" class="btn btn-danger btn-sm w-100 fw-semibold rounded-pill">
+          <i class="bi bi-lightning-fill me-1"></i> Run Auto-Escalation
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // রিয়েল-টাইম SLA কাউন্টডাউন
+  const liveTimers = document.querySelectorAll('.live-timer');
+  
+  function updateCountdowns() {
+    const now = new Date().getTime();
+
+    liveTimers.forEach(function(el) {
+      const deadlineStr = el.dataset.deadline;
+      if (!deadlineStr) return;
+
+      const deadline = new Date(deadlineStr).getTime();
+      if (isNaN(deadline)) return;
+      
+      const diff = deadline - now;
+
+      if (diff > 0) {
+        // সময় বাকি আছে (Time Left)
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        let timeStr = '';
+        if (days > 0) timeStr += days + 'd ';
+        timeStr += hours + 'h ' + minutes + 'm ' + seconds + 's';
+
+        el.innerHTML = timeStr;
+        
+        // ২৪ ঘণ্টার কম হলে সতর্কতা রঙ (হলুদ)
+        if (diff < 24 * 60 * 60 * 1000) {
+           el.classList.remove('success', 'danger'); 
+           el.classList.add('warning');
+        } else {
+           el.classList.remove('warning', 'danger'); 
+           el.classList.add('success');
+        }
+        
+      } else {
+        // সময় শেষ (Overdue)
+        const overdueDiff = Math.abs(diff);
+        const days = Math.floor(overdueDiff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((overdueDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((overdueDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((overdueDiff % (1000 * 60)) / 1000);
+
+        let timeStr = '+';
+        if (days > 0) timeStr += days + 'd ';
+        timeStr += hours + 'h ' + minutes + 'm ' + seconds + 's';
+
+        el.innerHTML = timeStr;
+        el.classList.remove('success', 'warning');
+        el.classList.add('danger');
+      }
+    });
+  }
+
+  if (liveTimers.length > 0) {
+    updateCountdowns(); // সাথে সাথে একবার রান হবে
+    setInterval(updateCountdowns, 1000); // প্রতি ১ সেকেন্ডে আপডেট হবে
+  }
+});
+</script>
+{% endblock %}

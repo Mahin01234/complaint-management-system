@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+{% block title %}Customer Feedback{% endblock %}
+{% block page_title %}Customer Feedback{% endblock %}
+
+{% block content %}
+<style>
+  .fb-hero {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border-radius: 16px;
+    padding: 26px 28px;
+    color: #fff;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .fb-hero::after {
+    content: ""; position: absolute;
+    width: 220px; height: 220px;
+    background: rgba(255,255,255,.1);
+    border-radius: 50%;
+    top: -90px; right: -60px;
+  }
+  .fb-hero h4 { font-weight: 700; margin-bottom: 4px; position: relative; z-index: 2; }
+  .fb-hero p { opacity: .9; margin: 0; font-size: .9rem; position: relative; z-index: 2; }
+
+  .fb-hero-stats {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 18px; position: relative; z-index: 2;
+  }
+  .fb-hero-chip {
+    background: rgba(255,255,255,.2);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 10px;
+    padding: 8px 14px;
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .fb-hero-chip .num {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .fb-hero-chip .lbl {
+    font-size: .74rem;
+    opacity: .9;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+
+  .fb-filter {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eef0f4;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .fb-filter input,
+  .fb-filter select {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: .85rem;
+  }
+  .fb-filter input:focus,
+  .fb-filter select:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245,158,11,.15);
+    outline: none;
+  }
+
+  /* Rating distribution */
+  .fb-dist-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eef0f4;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .fb-dist-card h6 {
+    font-size: .78rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 14px;
+  }
+
+  .fb-avg-block {
+    text-align: center;
+    padding: 12px 0 18px;
+    border-bottom: 1px solid #f3f4f6;
+    margin-bottom: 14px;
+  }
+  .fb-avg-block .num {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: #d97706;
+    line-height: 1;
+  }
+  .fb-avg-block .stars {
+    font-size: 1.05rem;
+    color: #f59e0b;
+    margin: 6px 0 2px;
+  }
+  .fb-avg-block .stars .bi-star { color: #d1d5db; }
+  .fb-avg-block .sub {
+    font-size: .74rem;
+    color: #6b7280;
+  }
+
+  .fb-dist-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: .78rem;
+  }
+  .fb-dist-row .lbl {
+    display: flex; align-items: center; gap: 3px;
+    min-width: 42px;
+    color: #6b7280;
+    font-weight: 600;
+  }
+  .fb-dist-row .lbl i { color: #f59e0b; font-size: .8rem; }
+  .fb-dist-row .bar {
+    flex: 1;
+    height: 8px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .fb-dist-row .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    border-radius: 4px;
+    transition: width .4s ease;
+  }
+  .fb-dist-row .cnt {
+    min-width: 26px;
+    text-align: right;
+    font-weight: 700;
+    color: #374151;
+  }
+
+  /* Feedback card (grid) */
+  .fb-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .fb-card {
+    background: #fff;
+    border: 1px solid #eef0f4;
+    border-radius: 12px;
+    padding: 16px;
+    transition: all .15s;
+  }
+  .fb-card:hover {
+    border-color: #fcd34d;
+    box-shadow: 0 4px 14px rgba(245,158,11,.1);
+  }
+  .fb-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .fb-card-complaint {
+    flex: 1; min-width: 0;
+  }
+  .fb-card-trk {
+    font-family: 'Courier New', monospace;
+    font-size: .72rem;
+    font-weight: 700;
+    background: #eef2ff;
+    color: #4f46e5;
+    padding: 2px 8px;
+    border-radius: 6px;
+    text-decoration: none;
+  }
+  .fb-card-title {
+    font-size: .88rem;
+    font-weight: 600;
+    color: #111827;
+    margin-top: 4px;
+    display: block;
+    text-decoration: none;
+  }
+  .fb-card-title:hover { color: #4f46e5; }
+
+  .fb-stars-mini {
+    color: #f59e0b;
+    font-size: .9rem;
+    white-space: nowrap;
+  }
+  .fb-stars-mini .bi-star { color: #d1d5db; }
+  .fb-rating-num {
+    font-size: .78rem;
+    font-weight: 700;
+    color: #374151;
+    margin-left: 4px;
+  }
+
+  .fb-card-comment {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: .84rem;
+    color: #78350f;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    position: relative;
+  }
+
+  .fb-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: .72rem;
+    color: #6b7280;
+    padding-top: 10px;
+    border-top: 1px dashed #f3f4f6;
+  }
+  .fb-card-meta i { margin-right: 3px; }
+  .fb-card-meta .avatar-mini {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .55rem;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  /* Officer stats mini */
+  .fb-officer-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dashed #f3f4f6;
+  }
+  .fb-officer-row:last-child { border-bottom: 0; }
+  .fb-officer-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .fb-officer-info { flex: 1; min-width: 0; }
+  .fb-officer-name {
+    font-size: .82rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  .fb-officer-dept {
+    font-size: .68rem;
+    color: #6b7280;
+  }
+  .fb-officer-badge {
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  /* Empty */
+  .fb-empty {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .fb-empty-icon {
+    width: 90px; height: 90px;
+    margin: 0 auto 16px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #d97706;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem;
+  }
+  .fb-empty h5 { font-weight: 700; color: #111827; margin-bottom: 6px; }
+  .fb-empty p { color: #6b7280; max-width: 380px; margin: 0 auto 18px; font-size: .88rem; }
+
+  /* Pagination */
+  .fb-pagination {
+    display: flex; justify-content: center; gap: 6px; margin-top: 20px;
+  }
+  .fb-pagination a,
+  .fb-pagination span {
+    min-width: 34px; height: 34px; padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+    display: inline-flex; align-items: center; justify-content: center;
+    text-decoration: none;
+    font-size: .82rem;
+    font-weight: 600;
+  }
+  .fb-pagination a:hover {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #d97706;
+  }
+  .fb-pagination .active {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #fff;
+  }
+  .fb-pagination .disabled { opacity: .4; pointer-events: none; }
+</style>
+
+{# ============ HERO ============ #}
+<div class="fb-hero">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+      <h4><i class="bi bi-chat-heart-fill me-2"></i>Customer Feedback</h4>
+      <p>Every rating and comment from your users — in one place.</p>
+    </div>
+  </div>
+
+  <div class="fb-hero-stats">
+    <div class="fb-hero-chip">
+      <i class="bi bi-chat-square-text"></i>
+      <span class="num">{{ total }}</span>
+      <span class="lbl">Total</span>
+    </div>
+    <div class="fb-hero-chip">
+      <i class="bi bi-star-fill"></i>
+      <span class="num">{{ avg_rating }}</span>
+      <span class="lbl">Avg Rating</span>
+    </div>
+    <div class="fb-hero-chip">
+      <i class="bi bi-hand-thumbs-up-fill"></i>
+      <span class="num">{{ rating_counts.get(4, 0) + rating_counts.get(5, 0) }}</span>
+      <span class="lbl">4-5 ★</span>
+    </div>
+    <div class="fb-hero-chip">
+      <i class="bi bi-hand-thumbs-down-fill"></i>
+      <span class="num">{{ rating_counts.get(1, 0) + rating_counts.get(2, 0) }}</span>
+      <span class="lbl">1-2 ★</span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  {# ============ LEFT: FILTER + LIST ============ #}
+  <div class="col-lg-9">
+
+    {# --- Filter --- #}
+    <form method="get" class="fb-filter">
+      <input type="text" name="q" value="{{ search }}"
+             placeholder="Search tracking ID or title..." style="flex:1; min-width:180px;">
+      <select name="rating" onchange="this.form.submit()">
+        <option value="">All Ratings</option>
+        {% for i in [5,4,3,2,1] %}
+          <option value="{{ i }}" {{ 'selected' if rating_filter == i }}>
+            {{ i }} Star{{ '' if i == 1 else 's' }} ({{ rating_counts.get(i, 0) }})
+          </option>
+        {% endfor %}
+      </select>
+      <select name="officer_id" onchange="this.form.submit()">
+        <option value="">All Officers</option>
+        {% for o in officers %}
+          <option value="{{ o.id }}" {{ 'selected' if officer_filter == o.id }}>{{ o.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-warning btn-sm px-3 text-white">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+      {% if search or rating_filter or officer_filter %}
+      <a href="{{ url_for('admin_feedback') }}" class="btn btn-light btn-sm">
+        <i class="bi bi-x-lg"></i> Clear
+      </a>
+      {% endif %}
+    </form>
+
+    {# --- List --- #}
+    {% if feedbacks %}
+    <div class="fb-grid">
+      {% for fb in feedbacks %}
+        {% set fb_complaint = fb.complaint %}
+        <div class="fb-card">
+          <div class="fb-card-head">
+            <div class="fb-card-complaint">
+              {% if fb_complaint %}
+              <a href="{{ url_for('complaint_detail', cid=fb_complaint.id) }}" class="fb-card-trk">
+                {{ fb_complaint.tracking_id }}
+              </a>
+              <a href="{{ url_for('complaint_detail', cid=fb_complaint.id) }}" class="fb-card-title">
+                {{ fb_complaint.title|truncate(70) }}
+              </a>
+              {% else %}
+              <span class="text-muted small">Complaint deleted</span>
+              {% endif %}
+            </div>
+            <div class="fb-stars-mini">
+              {% for i in range(1, 6) %}
+                <i class="bi {{ 'bi-star-fill' if i <= fb.rating else 'bi-star' }}"></i>
+              {% endfor %}
+              <span class="fb-rating-num">{{ fb.rating }}.0</span>
+            </div>
+          </div>
+
+          {% if fb.comment %}
+          <div class="fb-card-comment">
+            <i class="bi bi-quote" style="opacity:.4;margin-right:4px;"></i>{{ fb.comment }}
+          </div>
+          {% endif %}
+
+          <div class="fb-card-meta">
+            <span>
+              <span class="avatar-mini">
+                {{ fb.user.name[0]|upper if fb.user else '?' }}
+              </span>
+              {{ fb.user.name if fb.user else 'Anonymous' }}
+            </span>
+            {% if fb_complaint and fb_complaint.officer %}
+            <span><i class="bi bi-person-badge"></i>Officer: {{ fb_complaint.officer.name }}</span>
+            {% endif %}
+            <span><i class="bi bi-calendar3"></i>{{ fb.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {# --- Pagination --- #}
+    {% if pagination.pages > 1 %}
+    <nav class="fb-pagination">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('admin_feedback', page=pagination.prev_num, rating=rating_filter, officer_id=officer_filter, q=search) }}">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      {% else %}
+        <span class="disabled"><i class="bi bi-chevron-left"></i></span>
+      {% endif %}
+
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          {% if p == pagination.page %}
+            <span class="active">{{ p }}</span>
+          {% else %}
+            <a href="{{ url_for('admin_feedback', page=p, rating=rating_filter, officer_id=officer_filter, q=search) }}">{{ p }}</a>
+          {% endif %}
+        {% else %}
+          <span class="disabled">…</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if pagination.has_next %}
+        <a href="{{ url_for('admin_feedback', page=pagination.next_num, rating=rating_filter, officer_id=officer_filter, q=search) }}">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      {% else %}
+        <span class="disabled"><i class="bi bi-chevron-right"></i></span>
+      {% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="card fb-empty">
+      <div class="fb-empty-icon"><i class="bi bi-chat-heart"></i></div>
+      <h5>No Feedback Yet</h5>
+      <p>
+        {% if search or rating_filter or officer_filter %}
+          No feedback matches your filters. Try clearing them.
+        {% else %}
+          Feedback will appear here once users rate their resolved complaints.
+        {% endif %}
+      </p>
+      {% if search or rating_filter or officer_filter %}
+      <a href="{{ url_for('admin_feedback') }}" class="btn btn-warning text-white">
+        <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# ============ RIGHT: STATS SIDEBAR ============ #}
+  <div class="col-lg-3">
+
+    {# Rating distribution #}
+    <div class="fb-dist-card">
+      <h6><i class="bi bi-bar-chart-fill"></i> Rating Breakdown</h6>
+
+      <div class="fb-avg-block">
+        <div class="num">{{ avg_rating }}</div>
+        <div class="stars">
+          {% for i in range(1, 6) %}
+            <i class="bi {{ 'bi-star-fill' if i <= avg_rating else 'bi-star' }}"></i>
+          {% endfor %}
+        </div>
+        <div class="sub">Based on {{ total }} review{{ '' if total == 1 else 's' }}</div>
+      </div>
+
+      {% set max_count = [rating_counts.values()]|map('max')|first if rating_counts else 1 %}
+      {% set max_count = max_count if max_count > 0 else 1 %}
+      {% for i in [5,4,3,2,1] %}
+        {% set cnt = rating_counts.get(i, 0) %}
+        {% set pct = (cnt / max_count * 100) if max_count else 0 %}
+        <div class="fb-dist-row">
+          <span class="lbl">{{ i }} <i class="bi bi-star-fill"></i></span>
+          <div class="bar"><div class="bar-fill" style="width: {{ pct }}%;"></div></div>
+          <span class="cnt">{{ cnt }}</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    {# Per-officer feedback #}
+    <div class="fb-dist-card">
+      <h6><i class="bi bi-people-fill"></i> By Officer</h6>
+      {% for o in officers %}
+        {% set stat = officer_fb_stats.get(o.id, {'count': 0, 'avg': 0}) %}
+        <div class="fb-officer-row">
+          <span class="fb-officer-avatar">{{ o.initials }}</span>
+          <div class="fb-officer-info">
+            <div class="fb-officer-name">{{ o.name|truncate(18) }}</div>
+            <div class="fb-officer-dept">{{ o.department or 'General' }}</div>
+          </div>
+          <div class="text-end">
+            <div class="fb-officer-badge">
+              {% if stat.count > 0 %}
+                {{ stat.avg }} ★
+              {% else %}
+                No ratings
+              {% endif %}
+            </div>
+            <div class="text-muted" style="font-size:.66rem;margin-top:2px;">
+              {{ stat.count }} review{{ '' if stat.count == 1 else 's' }}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="text-center text-muted small py-3">No officers yet.</div>
+      {% endfor %}
+    </div>
+
+    <div class="fb-dist-card bg-light">
+      <h6><i class="bi bi-info-circle"></i> About</h6>
+      <p class="small text-muted mb-0">
+        Feedback is collected from users after their complaint is resolved.
+        Ratings help monitor officer performance and service quality.
+      </p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+

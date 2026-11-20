@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}Assignment History{% endblock %}
+{% block page_title %}Assignment History{% endblock %}
+
+{% block content %}
+<style>
+  .ah-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: #fff;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ah-hero::after {
+    content: ""; position: absolute;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,.08);
+    border-radius: 50%;
+    top: -80px; right: -60px;
+  }
+  .ah-hero h4 { font-weight: 700; margin-bottom: 4px; position: relative; z-index: 2; }
+  .ah-hero p { opacity: .85; margin: 0; font-size: .88rem; position: relative; z-index: 2; }
+
+  .ah-filter {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eef0f4;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .ah-filter input,
+  .ah-filter select {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: .85rem;
+    transition: all .15s;
+  }
+  .ah-filter input:focus,
+  .ah-filter select:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+    outline: none;
+  }
+
+  .ah-stat-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eef0f4;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .ah-stat-card h6 {
+    font-size: .74rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 10px;
+  }
+  .ah-officer-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dashed #f3f4f6;
+  }
+  .ah-officer-row:last-child { border-bottom: 0; }
+  .ah-officer-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .72rem;
+    flex-shrink: 0;
+  }
+  .ah-officer-info { flex: 1; min-width: 0; }
+  .ah-officer-name { font-weight: 700; font-size: .82rem; color: #111827; }
+  .ah-officer-dept { font-size: .7rem; color: #6b7280; }
+  .ah-officer-stats { display: flex; gap: 4px; }
+  .ah-badge-mini {
+    font-size: .62rem;
+    padding: 2px 6px;
+    border-radius: 20px;
+    font-weight: 700;
+    background: #f3f4f6;
+    color: #4b5563;
+  }
+  .ah-badge-mini.active { background: #fef3c7; color: #b45309; }
+  .ah-badge-mini.resolved { background: #d1fae5; color: #065f46; }
+
+  .ah-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #eef0f4;
+  }
+  .ah-table thead th {
+    background: #fafbfd;
+    padding: 10px 12px;
+    font-size: .72rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    text-align: left;
+    border-bottom: 1px solid #eef0f4;
+  }
+  .ah-table tbody td {
+    padding: 10px 12px;
+    font-size: .82rem;
+    border-bottom: 1px solid #f5f7fb;
+    vertical-align: middle;
+  }
+  .ah-table tbody tr:hover { background: #fafbfd; }
+
+  .ah-trk {
+    font-family: 'Courier New', monospace;
+    font-size: .74rem;
+    font-weight: 700;
+    color: #4f46e5;
+    background: #eef2ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .ah-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 20px;
+  }
+  .ah-pagination a,
+  .ah-pagination span {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: .82rem;
+    font-weight: 600;
+  }
+  .ah-pagination a:hover { background: #f5f3ff; border-color: #c7d2fe; color: #4f46e5; }
+  .ah-pagination .active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+  .ah-pagination .disabled { opacity: .4; pointer-events: none; }
+</style>
+
+{# ============ HERO ============ #}
+<div class="ah-hero">
+  <h4><i class="bi bi-clock-history me-2"></i>Assignment History</h4>
+  <p>Complete record of every officer assignment — who, when, and why.</p>
+</div>
+
+<div class="row g-3">
+  {# ============ LEFT: Filter + Table ============ #}
+  <div class="col-lg-9">
+
+    {# --- Filter --- #}
+    <form method="get" class="ah-filter">
+      <input type="text" name="q" value="{{ search }}" placeholder="Search tracking ID or title..." style="flex:1; min-width:180px;">
+      <select name="officer_id" onchange="this.form.submit()">
+        <option value="">All Officers</option>
+        {% for o in officers %}
+          <option value="{{ o.id }}" {{ 'selected' if officer_filter == o.id }}>{{ o.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm px-3">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+      {% if search or officer_filter %}
+      <a href="{{ url_for('admin_assignments') }}" class="btn btn-light btn-sm">
+        <i class="bi bi-x-lg"></i> Clear
+      </a>
+      {% endif %}
+    </form>
+
+    {# --- Table --- #}
+    {% if assignments %}
+    <div class="table-responsive">
+      <table class="ah-table">
+        <thead>
+          <tr>
+            <th>Complaint</th>
+            <th>Officer</th>
+            <th>Assigned By</th>
+            <th>When</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assignments %}
+          <tr>
+            <td>
+              {% if a.complaint %}
+                <a href="{{ url_for('complaint_detail', cid=a.complaint.id) }}"
+                   class="text-decoration-none">
+                  <span class="ah-trk">{{ a.complaint.tracking_id }}</span>
+                  <div class="small fw-semibold text-dark mt-1">{{ a.complaint.title|truncate(38) }}</div>
+                </a>
+              {% else %}
+                <span class="text-muted small">Complaint #{{ a.complaint_id }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="ah-officer-avatar">
+                  {{ a.officer.initials if a.officer else '?' }}
+                </span>
+                <div>
+                  <div class="small fw-semibold">{{ a.officer.name if a.officer else 'Unknown' }}</div>
+                  <div class="text-muted" style="font-size:.7rem">{{ a.officer.department or '' }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="small">{{ a.assigner.name if a.assigner else 'System' }}</td>
+            <td class="small text-muted">
+              {{ a.assigned_at.strftime('%d %b %Y') }}<br>
+              <span style="font-size:.7rem">{{ a.assigned_at.strftime('%I:%M %p') }}</span>
+            </td>
+            <td class="small text-muted">
+              {{ a.notes|truncate(40) if a.notes else '—' }}
+            </td>
+            <td>
+              {% if a.complaint %}
+                <a href="{{ url_for('complaint_detail', cid=a.complaint.id) }}"
+                   class="btn btn-sm btn-light" title="View complaint">
+                  <i class="bi bi-arrow-right"></i>
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# --- Pagination --- #}
+    {% if pagination.pages > 1 %}
+    <nav class="ah-pagination">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('admin_assignments', page=pagination.prev_num, officer_id=officer_filter, q=search) }}">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      {% else %}
+        <span class="disabled"><i class="bi bi-chevron-left"></i></span>
+      {% endif %}
+
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          {% if p == pagination.page %}
+            <span class="active">{{ p }}</span>
+          {% else %}
+            <a href="{{ url_for('admin_assignments', page=p, officer_id=officer_filter, q=search) }}">{{ p }}</a>
+          {% endif %}
+        {% else %}
+          <span class="disabled">…</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if pagination.has_next %}
+        <a href="{{ url_for('admin_assignments', page=pagination.next_num, officer_id=officer_filter, q=search) }}">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      {% else %}
+        <span class="disabled"><i class="bi bi-chevron-right"></i></span>
+      {% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="card p-5 text-center">
+      <i class="bi bi-inbox" style="font-size:3rem;color:#c7d2fe;"></i>
+      <h5 class="mt-3 fw-bold">No Assignments Found</h5>
+      <p class="text-muted">
+        {% if search or officer_filter %}
+          No assignments match your filters. Try clearing them.
+        {% else %}
+          No assignments have been made yet.
+        {% endif %}
+      </p>
+      {% if search or officer_filter %}
+      <a href="{{ url_for('admin_assignments') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  {# ============ RIGHT: Officer Stats ============ #}
+  <div class="col-lg-3">
+    <div class="ah-stat-card">
+      <h6><i class="bi bi-people-fill"></i> Officer Summary</h6>
+      {% for o in officers %}
+        {% set stat = officer_stats.get(o.id, {}) %}
+        <div class="ah-officer-row">
+          <span class="ah-officer-avatar">{{ o.initials }}</span>
+          <div class="ah-officer-info">
+            <div class="ah-officer-name">{{ o.name|truncate(18) }}</div>
+            <div class="ah-officer-dept">{{ o.department or 'General' }}</div>
+          </div>
+          <div class="ah-officer-stats" style="flex-direction:column;align-items:flex-end;">
+            <span class="ah-badge-mini">{{ stat.get('total', 0) }} total</span>
+            {% if stat.get('active', 0) %}
+              <span class="ah-badge-mini active">{{ stat.active }} active</span>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="text-center text-muted small py-3">No officers yet.</div>
+      {% endfor %}
+    </div>
+
+    <div class="ah-stat-card bg-light">
+      <h6><i class="bi bi-info-circle"></i> About This Page</h6>
+      <p class="small text-muted mb-0">
+        Every time a complaint is assigned or reassigned, it's logged here for accountability and auditing.
+      </p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

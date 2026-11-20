@@ -1,0 +1,989 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if current_user.role == 'user' %}My Complaints
+  {% elif current_user.role == 'officer' %}My Assignments
+  {% else %}Complaint Management{% endif %}
+{% endblock %}
+{% block page_title %}
+  {% if current_user.role == 'user' %}My Complaints
+  {% elif current_user.role == 'officer' %}My Assignments
+  {% else %}Complaint Management{% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+  /* ============ MANAGE PAGE — Professional Styles ============ */
+  .mg-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 18px;
+    padding: 26px 28px;
+    color: #fff;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .mg-hero::after {
+    content: ""; position: absolute;
+    width: 220px; height: 220px;
+    background: rgba(255,255,255,.07);
+    border-radius: 50%;
+    top: -100px; right: -60px;
+  }
+  .mg-hero::before {
+    content: ""; position: absolute;
+    width: 140px; height: 140px;
+    background: rgba(255,255,255,.05);
+    border-radius: 50%;
+    bottom: -70px; left: 30%;
+  }
+  .mg-hero h4 {
+    font-weight: 700; margin-bottom: 4px;
+    font-size: 1.35rem; position: relative; z-index: 2;
+  }
+  .mg-hero p { opacity: .85; margin: 0; font-size: .88rem; position: relative; z-index: 2; }
+
+  .mg-stats {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 18px; position: relative; z-index: 2;
+  }
+  .mg-stat-chip {
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: .82rem;
+    backdrop-filter: blur(4px);
+  }
+  .mg-stat-chip i { font-size: 1rem; opacity: .9; }
+  .mg-stat-chip .num { font-weight: 700; font-size: 1rem; }
+  .mg-stat-chip .lbl { opacity: .85; }
+
+  /* ============ FILTER BAR ============ */
+  .mg-filter-bar {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #eef0f4;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(16,24,40,.04);
+  }
+  .mg-search-wrap {
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .mg-search-wrap i {
+    position: absolute;
+    left: 16px; top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 1.05rem;
+  }
+  .mg-search-wrap input {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 11px 14px 11px 44px;
+    font-size: .9rem;
+    transition: all .15s;
+    background: #fafbfd;
+  }
+  .mg-search-wrap input:focus {
+    border-color: #4f46e5;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(79,70,229,.1);
+    outline: none;
+  }
+
+  /* Status pills */
+  .mg-pill-group {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .mg-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border: 1.5px solid #e5e7eb;
+    background: #fff;
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all .15s;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .mg-pill:hover { border-color: #c7d2fe; color: #4f46e5; background: #f5f3ff; }
+  .mg-pill.active {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(79,70,229,.25);
+  }
+  .mg-pill .count {
+    background: rgba(0,0,0,.08);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: .7rem;
+  }
+  .mg-pill.active .count { background: rgba(255,255,255,.25); }
+
+  /* Filter controls row */
+  .mg-filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    align-items: end;
+    margin-top: 12px;
+  }
+  .mg-field label {
+    font-size: .72rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .mg-field select,
+  .mg-field input {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: .82rem;
+    width: 100%;
+    transition: all .15s;
+  }
+  .mg-field select:focus,
+  .mg-field input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+    outline: none;
+  }
+
+  /* Active filters chips */
+  .mg-active-filters {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin-bottom: 14px;
+  }
+  .mg-active-label {
+    font-size: .78rem;
+    color: #6b7280;
+    font-weight: 600;
+  }
+  .mg-filter-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    color: #4f46e5;
+    border-radius: 20px;
+    font-size: .74rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all .15s;
+  }
+  .mg-filter-chip:hover { background: #e0e7ff; color: #4338ca; }
+  .mg-filter-chip i { font-size: .7rem; }
+  .mg-clear-all {
+    padding: 4px 12px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    color: #dc2626;
+    border-radius: 20px;
+    font-size: .74rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all .15s;
+  }
+  .mg-clear-all:hover { background: #fee2e2; border-color: #fecaca; color: #b91c1c; }
+
+  /* ============ RESULTS HEADER ============ */
+  .mg-results-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .mg-results-count {
+    font-size: .88rem;
+    color: #374151;
+  }
+  .mg-results-count strong { color: #111827; font-weight: 700; }
+
+  .mg-view-toggle {
+    display: inline-flex;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .mg-view-toggle button {
+    border: 0;
+    background: transparent;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: .82rem;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .mg-view-toggle button.active {
+    background: #4f46e5;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(79,70,229,.3);
+  }
+
+  /* ============ TABLE VIEW ============ */
+  .mg-table-wrap {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #eef0f4;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(16,24,40,.04);
+  }
+  .mg-table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+  }
+  .mg-table thead th {
+    background: #fafbfd;
+    padding: 12px 14px;
+    font-size: .74rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    border-bottom: 1px solid #eef0f4;
+    white-space: nowrap;
+  }
+  .mg-table tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f5f7fb;
+    font-size: .85rem;
+    color: #374151;
+    vertical-align: middle;
+  }
+  .mg-table tbody tr {
+    transition: background .1s;
+  }
+  .mg-table tbody tr:hover { background: #fafbfd; }
+  .mg-table tbody tr:last-child td { border-bottom: 0; }
+
+  .mg-trk-code {
+    font-family: 'Courier New', monospace;
+    font-size: .78rem;
+    font-weight: 700;
+    color: #4f46e5;
+    background: #eef2ff;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .mg-title-cell {
+    max-width: 280px;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.35;
+  }
+  .mg-title-cell small {
+    display: block;
+    color: #9ca3af;
+    font-weight: 400;
+    font-size: .72rem;
+    margin-top: 2px;
+  }
+
+  .mg-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: .72rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* Action buttons */
+  .mg-action-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #6b7280;
+    display: inline-flex; align-items: center; justify-content: center;
+    text-decoration: none;
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .mg-action-btn:hover { background: #f5f3ff; border-color: #c7d2fe; color: #4f46e5; }
+  .mg-action-btn.danger:hover { background: #fee2e2; border-color: #fecaca; color: #dc2626; }
+  .mg-action-btn.success:hover { background: #d1fae5; border-color: #86efac; color: #059669; }
+
+  /* ============ CARD VIEW ============ */
+  .mg-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+  .mg-comp-card {
+    background: #fff;
+    border: 1px solid #eef0f4;
+    border-radius: 14px;
+    padding: 16px;
+    transition: all .18s;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .mg-comp-card:hover {
+    transform: translateY(-2px);
+    border-color: #c7d2fe;
+    box-shadow: 0 8px 20px rgba(16,24,40,.08);
+  }
+  .mg-comp-card .card-head {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: 8px; margin-bottom: 10px;
+  }
+  .mg-comp-card .card-title {
+    font-weight: 700;
+    font-size: .95rem;
+    color: #111827;
+    line-height: 1.35;
+    margin: 8px 0 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .mg-comp-card .card-desc {
+    font-size: .82rem;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex-grow: 1;
+  }
+  .mg-comp-card .card-meta {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    font-size: .74rem;
+    color: #6b7280;
+    padding-top: 12px;
+    border-top: 1px dashed #f3f4f6;
+  }
+  .mg-comp-card .card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .mg-comp-card .card-actions {
+    display: flex; gap: 6px; margin-top: 12px;
+  }
+  .mg-comp-card .card-actions .mg-action-btn { width: auto; padding: 0 12px; gap: 5px; font-size: .78rem; font-weight: 600; }
+
+  /* ============ EMPTY STATE ============ */
+  .mg-empty {
+    text-align: center;
+    padding: 70px 20px;
+  }
+  .mg-empty-icon {
+    width: 96px; height: 96px;
+    background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 2.4rem;
+    color: #4f46e5;
+    margin-bottom: 18px;
+  }
+  .mg-empty h5 { font-weight: 700; color: #111827; margin-bottom: 6px; }
+  .mg-empty p { color: #6b7280; max-width: 400px; margin: 0 auto 18px; font-size: .9rem; }
+
+  /* ============ PAGINATION ============ */
+  .mg-pagination {
+    display: flex; justify-content: center; align-items: center;
+    gap: 6px; margin-top: 20px;
+  }
+  .mg-pagination a,
+  .mg-pagination span {
+    min-width: 36px; height: 36px;
+    padding: 0 10px;
+    border-radius: 9px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+    display: inline-flex; align-items: center; justify-content: center;
+    text-decoration: none;
+    font-size: .85rem;
+    font-weight: 600;
+    transition: all .15s;
+  }
+  .mg-pagination a:hover { background: #f5f3ff; border-color: #c7d2fe; color: #4f46e5; }
+  .mg-pagination .active {
+    background: #4f46e5; border-color: #4f46e5; color: #fff;
+    box-shadow: 0 2px 8px rgba(79,70,229,.3);
+  }
+  .mg-pagination .disabled { opacity: .4; pointer-events: none; }
+
+  /* ============ BULK BAR ============ */
+  .mg-bulk-bar {
+    position: sticky;
+    bottom: 12px;
+    background: #111827;
+    color: #fff;
+    border-radius: 12px;
+    padding: 10px 16px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    z-index: 100;
+    animation: mgSlideUp .2s ease;
+  }
+  .mg-bulk-bar.show { display: flex; }
+  @keyframes mgSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .mg-bulk-bar .count-badge {
+    background: #4f46e5;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 700;
+  }
+
+  /* Hidden/shown view */
+  .view-hidden { display: none !important; }
+
+  /* Checkbox custom */
+  .mg-checkbox {
+    width: 16px; height: 16px;
+    cursor: pointer;
+    accent-color: #4f46e5;
+  }
+
+  /* Responsive */
+  @media (max-width: 767.98px) {
+    .mg-hero { padding: 20px; }
+    .mg-stats { gap: 6px; }
+    .mg-stat-chip { padding: 6px 10px; font-size: .75rem; }
+    .mg-stat-chip .num { font-size: .9rem; }
+    .mg-filter-row { grid-template-columns: repeat(2, 1fr); }
+    .mg-cards-grid { grid-template-columns: 1fr; }
+    .mg-results-header { flex-direction: column; align-items: stretch; }
+  }
+</style>
+
+{# ============ HERO ============ #}
+<div class="mg-hero">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 position-relative" style="z-index:2;">
+    <div>
+      <h4>
+        {% if current_user.role == 'admin' %}<i class="bi bi-inbox-fill me-2"></i>All Complaints
+        {% elif current_user.role == 'officer' %}<i class="bi bi-clipboard-check me-2"></i>My Assignments
+        {% else %}<i class="bi bi-list-ul me-2"></i>My Complaints{% endif %}
+      </h4>
+      <p>
+        {% if current_user.role == 'admin' %}Search, filter, assign and manage every complaint in the system.
+        {% elif current_user.role == 'officer' %}Complaints assigned to you — update status and resolve.
+        {% else %}Track all complaints you've submitted.{% endif %}
+      </p>
+    </div>
+    {% if current_user.role == 'user' %}
+    
+    {% endif %}
+  </div>
+
+  <div class="mg-stats">
+    <div class="mg-stat-chip">
+      <i class="bi bi-collection"></i>
+      <span class="num">{{ stats.total }}</span>
+      <span class="lbl">Total</span>
+    </div>
+    <div class="mg-stat-chip">
+      <i class="bi bi-hourglass-split"></i>
+      <span class="num">{{ stats.pending }}</span>
+      <span class="lbl">Pending</span>
+    </div>
+    <div class="mg-stat-chip">
+      <i class="bi bi-gear"></i>
+      <span class="num">{{ stats.in_progress }}</span>
+      <span class="lbl">In Progress</span>
+    </div>
+    <div class="mg-stat-chip">
+      <i class="bi bi-check2-circle"></i>
+      <span class="num">{{ stats.resolved }}</span>
+      <span class="lbl">Resolved</span>
+    </div>
+  </div>
+</div>
+
+{# ============ FILTER BAR ============ #}
+<form method="get" id="mgFilterForm" class="mg-filter-bar">
+
+  <!-- Search -->
+  <div class="mg-search-wrap">
+    <i class="bi bi-search"></i>
+    <input type="text" name="q" id="mgSearch" value="{{ search }}"
+           class="form-control" placeholder="Search by Tracking ID, title, location or description..."
+           autocomplete="off">
+  </div>
+
+  <!-- Status pills -->
+  <div class="mg-pill-group mb-1">
+    <a href="{{ url_for('complaints_list', q=search, priority=priority, category_id=category_id, date_from=date_from, date_to=date_to, sort=sort) }}"
+       class="mg-pill {{ 'active' if not status }}">
+      <i class="bi bi-collection"></i> All
+      <span class="count">{{ stats.total }}</span>
+    </a>
+    {% for s in STATUSES %}
+      <a href="{{ url_for('complaints_list', q=search, status=s, priority=priority, category_id=category_id, date_from=date_from, date_to=date_to, sort=sort) }}"
+         class="mg-pill {{ 'active' if status == s }}">
+        {{ s }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <!-- Filter row -->
+  <div class="mg-filter-row">
+    <div class="mg-field">
+      <label>Priority</label>
+      <select name="priority" onchange="this.form.submit()">
+        <option value="">All Priorities</option>
+        {% for p in PRIORITIES %}
+          <option value="{{ p }}" {{ 'selected' if priority == p }}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mg-field">
+      <label>Category</label>
+      <select name="category_id" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}" {{ 'selected' if category_id == cat.id }}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mg-field">
+      <label>From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" onchange="this.form.submit()">
+    </div>
+
+    <div class="mg-field">
+      <label>To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()">
+    </div>
+
+    <div class="mg-field">
+      <label>Sort By</label>
+      <select name="sort" onchange="this.form.submit()">
+        <option value="newest" {{ 'selected' if sort == 'newest' }}>Newest First</option>
+        <option value="oldest" {{ 'selected' if sort == 'oldest' }}>Oldest First</option>
+        <option value="priority" {{ 'selected' if sort == 'priority' }}>Priority (High → Low)</option>
+        <option value="updated" {{ 'selected' if sort == 'updated' }}>Recently Updated</option>
+      </select>
+    </div>
+
+    <div class="mg-field" style="display:flex; align-items:flex-end; gap:6px;">
+      <input type="hidden" name="status" value="{{ status }}">
+      <button type="submit" class="btn btn-primary btn-sm flex-fill">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+{# ============ ACTIVE FILTERS ============ #}
+{% if active_filters %}
+<div class="mg-active-filters">
+  <span class="mg-active-label"><i class="bi bi-funnel-fill"></i> Active filters:</span>
+  {% for key, label in active_filters %}
+    <a href="{{ url_for('complaints_list',
+        q=('' if key == 'q' else search),
+        status=('' if key == 'status' else status),
+        priority=('' if key == 'priority' else priority),
+        category_id=('' if key == 'category_id' else category_id),
+        date_from=('' if key == 'date_from' else date_from),
+        date_to=('' if key == 'date_to' else date_to),
+        sort=sort) }}"
+       class="mg-filter-chip">
+      {{ label }} <i class="bi bi-x-lg"></i>
+    </a>
+  {% endfor %}
+  <a href="{{ url_for('complaints_list') }}" class="mg-clear-all">
+    <i class="bi bi-x-circle"></i> Clear All
+  </a>
+</div>
+{% endif %}
+
+{# ============ RESULTS HEADER ============ #}
+<div class="mg-results-header">
+  <div class="mg-results-count">
+    Showing <strong>{{ pagination.items|length }}</strong>
+    of <strong>{{ pagination.total }}</strong> complaint{{ '' if pagination.total == 1 else 's' }}
+    {% if active_filters %}— filtered{% endif %}
+  </div>
+  <div class="mg-view-toggle">
+    <button type="button" id="viewTableBtn" class="active" title="Table view">
+      <i class="bi bi-table"></i> Table
+    </button>
+    <button type="button" id="viewCardsBtn" title="Card view">
+      <i class="bi bi-grid-3x3-gap"></i> Cards
+    </button>
+  </div>
+</div>
+
+{# ============ EMPTY STATE ============ #}
+{% if not complaints %}
+<div class="mg-table-wrap">
+  <div class="mg-empty">
+    <div class="mg-empty-icon"><i class="bi bi-inbox"></i></div>
+    <h5>
+      {% if active_filters %}No complaints match your filters
+      {% else %}No complaints yet{% endif %}
+    </h5>
+    <p>
+      {% if active_filters %}
+        Try adjusting or clearing your filters to see more results.
+      {% elif current_user.role == 'user' %}
+        You haven't submitted any complaints yet.
+      {% elif current_user.role == 'officer' %}
+        No complaints have been assigned to you yet.
+      {% else %}
+        No complaints in the system yet.
+      {% endif %}
+    </p>
+    {% if active_filters %}
+      <a href="{{ url_for('complaints_list') }}" class="btn btn-primary px-4">
+        <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+      </a>
+    {% elif current_user.role == 'user' %}
+      <a href="{{ url_for('complaint_new') }}" class="btn btn-primary px-4">
+        <i class="bi bi-plus-lg me-1"></i> Submit Your First Complaint
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{% else %}
+
+{# ============ TABLE VIEW ============ #}
+<div class="mg-table-wrap" id="tableView">
+  <div class="table-responsive">
+    <table class="mg-table">
+      <thead>
+        <tr>
+          <th style="width:36px;">
+            <input type="checkbox" id="selectAll" class="mg-checkbox" title="Select all">
+          </th>
+          <th>Tracking ID</th>
+          <th>Complaint</th>
+          <th>Category</th>
+          {% if current_user.role != 'user' %}<th>Complainant</th>{% endif %}
+          {% if current_user.role == 'admin' %}<th>Officer</th>{% endif %}
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in complaints %}
+        <tr>
+          <td>
+            <input type="checkbox" class="mg-checkbox mg-row-check" value="{{ c.id }}">
+          </td>
+          <td>
+            <span class="mg-trk-code">{{ c.tracking_id }}</span>
+          </td>
+          <td>
+            <a href="{{ url_for('complaint_detail', cid=c.id) }}" class="text-decoration-none">
+              <div class="mg-title-cell">
+                {{ c.title|truncate(45) }}
+                {% if c.location %}<small><i class="bi bi-geo-alt"></i> {{ c.location }}</small>{% endif %}
+              </div>
+            </a>
+          </td>
+          <td>
+            <span class="text-muted small">{{ c.category.name if c.category else '—' }}</span>
+          </td>
+          {% if current_user.role != 'user' %}
+          <td>
+            <span class="small fw-semibold">{{ c.user.name if c.user else '—' }}</span>
+          </td>
+          {% endif %}
+          {% if current_user.role == 'admin' %}
+          <td>
+            {% if c.officer %}
+              <span class="small fw-semibold text-success"><i class="bi bi-person-check"></i> {{ c.officer.name }}</span>
+            {% else %}
+              <span class="small text-muted fst-italic">Unassigned</span>
+            {% endif %}
+          </td>
+          {% endif %}
+          <td>
+            <span class="mg-badge bg-{{ c.priority_badge }}">
+              <i class="bi bi-flag-fill" style="font-size:.6rem;"></i>
+              {{ c.priority }}
+            </span>
+          </td>
+          <td>
+            <span class="mg-badge bg-{{ c.status_badge }}">
+              {{ c.status }}
+            </span>
+          </td>
+          <td>
+            <span class="small text-muted">{{ c.created_at.strftime('%d %b %Y') }}</span>
+          </td>
+          <td>
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{{ url_for('complaint_detail', cid=c.id) }}"
+                 class="mg-action-btn" title="View details">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% if current_user.role == 'admin' and not c.officer %}
+              <a href="{{ url_for('complaint_detail', cid=c.id) }}#assign"
+                 class="mg-action-btn success" title="Assign officer">
+                <i class="bi bi-person-plus"></i>
+              </a>
+              {% endif %}
+              {% if current_user.role in ['admin', 'officer'] and c.status not in ['Resolved', 'Closed', 'Rejected'] %}
+              <a href="{{ url_for('complaint_detail', cid=c.id) }}#status"
+                 class="mg-action-btn" title="Update status">
+                <i class="bi bi-arrow-repeat"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ============ CARD VIEW ============ #}
+<div class="mg-cards-grid view-hidden" id="cardsView">
+  {% for c in complaints %}
+  <div class="mg-comp-card">
+    <div class="card-head">
+      <span class="mg-trk-code">{{ c.tracking_id }}</span>
+      <span class="mg-badge bg-{{ c.status_badge }}">{{ c.status }}</span>
+    </div>
+
+    <a href="{{ url_for('complaint_detail', cid=c.id) }}" class="text-decoration-none">
+      <div class="card-title">{{ c.title }}</div>
+    </a>
+    <p class="card-desc">{{ c.description }}</p>
+
+    <div class="card-meta">
+      <span><i class="bi bi-tag"></i> {{ c.category.name if c.category else '—' }}</span>
+      <span class="text-{{ c.priority_badge }}"><i class="bi bi-flag"></i> {{ c.priority }}</span>
+      <span><i class="bi bi-calendar3"></i> {{ c.created_at.strftime('%d %b') }}</span>
+      {% if current_user.role != 'user' and c.user %}
+        <span><i class="bi bi-person"></i> {{ c.user.name|truncate(18) }}</span>
+      {% endif %}
+    </div>
+
+    {% if current_user.role == 'admin' and c.officer %}
+    <div class="card-meta" style="border-top:0; padding-top:6px;">
+      <span class="text-success"><i class="bi bi-person-check"></i> {{ c.officer.name }}</span>
+    </div>
+    {% endif %}
+
+    <div class="card-actions">
+      <a href="{{ url_for('complaint_detail', cid=c.id) }}" class="mg-action-btn flex-fill">
+        <i class="bi bi-eye"></i> View
+      </a>
+      {% if current_user.role == 'admin' and not c.officer %}
+      <a href="{{ url_for('complaint_detail', cid=c.id) }}#assign" class="mg-action-btn success flex-fill">
+        <i class="bi bi-person-plus"></i> Assign
+      </a>
+      {% endif %}
+      {% if current_user.role in ['admin', 'officer'] and c.status not in ['Resolved', 'Closed', 'Rejected'] %}
+      <a href="{{ url_for('complaint_detail', cid=c.id) }}#status" class="mg-action-btn flex-fill">
+        <i class="bi bi-arrow-repeat"></i> Update
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{# ============ BULK BAR (admin only) ============ #}
+{% if current_user.role == 'admin' %}
+<div class="mg-bulk-bar" id="bulkBar">
+  <span class="count-badge"><span id="selCount">0</span> selected</span>
+  <span class="small ms-2" style="opacity:.85;">Bulk actions</span>
+  <div class="ms-auto d-flex gap-2">
+    <button type="button" class="btn btn-sm btn-outline-light" onclick="clearSelection()">
+      <i class="bi bi-x-lg"></i> Cancel
+    </button>
+    <button type="button" class="btn btn-sm btn-primary" onclick="bulkAssign()">
+      <i class="bi bi-person-plus"></i> Assign
+    </button>
+  </div>
+</div>
+{% endif %}
+
+{# ============ PAGINATION ============ #}
+{% if pagination.pages > 1 %}
+<nav class="mg-pagination">
+  {% if pagination.has_prev %}
+    <a href="{{ url_for('complaints_list', page=pagination.prev_num, q=search, status=status, priority=priority, category_id=category_id, date_from=date_from, date_to=date_to, sort=sort) }}">
+      <i class="bi bi-chevron-left"></i>
+    </a>
+  {% else %}
+    <span class="disabled"><i class="bi bi-chevron-left"></i></span>
+  {% endif %}
+
+  {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+    {% if p %}
+      {% if p == pagination.page %}
+        <span class="active">{{ p }}</span>
+      {% else %}
+        <a href="{{ url_for('complaints_list', page=p, q=search, status=status, priority=priority, category_id=category_id, date_from=date_from, date_to=date_to, sort=sort) }}">{{ p }}</a>
+      {% endif %}
+    {% else %}
+      <span class="disabled">…</span>
+    {% endif %}
+  {% endfor %}
+
+  {% if pagination.has_next %}
+    <a href="{{ url_for('complaints_list', page=pagination.next_num, q=search, status=status, priority=priority, category_id=category_id, date_from=date_from, date_to=date_to, sort=sort) }}">
+      <i class="bi bi-chevron-right"></i>
+    </a>
+  {% else %}
+    <span class="disabled"><i class="bi bi-chevron-right"></i></span>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- View toggle (table / cards) — remembers choice ---------- */
+  const tableBtn = document.getElementById('viewTableBtn');
+  const cardsBtn = document.getElementById('viewCardsBtn');
+  const tableView = document.getElementById('tableView');
+  const cardsView = document.getElementById('cardsView');
+
+  function setView(mode) {
+    if (!tableView || !cardsView) return;
+    if (mode === 'cards') {
+      tableView.classList.add('view-hidden');
+      cardsView.classList.remove('view-hidden');
+      tableBtn.classList.remove('active');
+      cardsBtn.classList.add('active');
+      localStorage.setItem('mg_view', 'cards');
+    } else {
+      cardsView.classList.add('view-hidden');
+      tableView.classList.remove('view-hidden');
+      cardsBtn.classList.remove('active');
+      tableBtn.classList.add('active');
+      localStorage.setItem('mg_view', 'table');
+    }
+  }
+
+  if (tableBtn && cardsBtn) {
+    tableBtn.addEventListener('click', function () { setView('table'); });
+    cardsBtn.addEventListener('click', function () { setView('cards'); });
+    setView(localStorage.getItem('mg_view') || 'table');
+  }
+
+  /* ---------- Debounced live search (auto-submit after pause) ---------- */
+  const searchInput = document.getElementById('mgSearch');
+  const form = document.getElementById('mgFilterForm');
+  if (searchInput && form) {
+    let timer;
+    searchInput.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        // Preserve other params — status is hidden input
+        form.submit();
+      }, 650);
+    });
+  }
+
+  /* ---------- Select all / row checkboxes ---------- */
+  const selectAll = document.getElementById('selectAll');
+  const rowChecks = document.querySelectorAll('.mg-row-check');
+  const bulkBar = document.getElementById('bulkBar');
+  const selCountEl = document.getElementById('selCount');
+
+  function updateBulkBar() {
+    if (!bulkBar) return;
+    const n = document.querySelectorAll('.mg-row-check:checked').length;
+    if (selCountEl) selCountEl.textContent = n;
+    if (n > 0) {
+      bulkBar.classList.add('show');
+    } else {
+      bulkBar.classList.remove('show');
+    }
+    if (selectAll && rowChecks.length) {
+      selectAll.checked = n === rowChecks.length;
+      selectAll.indeterminate = n > 0 && n < rowChecks.length;
+    }
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function () {
+      rowChecks.forEach(function (cb) { cb.checked = selectAll.checked; });
+      updateBulkBar();
+    });
+  }
+  rowChecks.forEach(function (cb) {
+    cb.addEventListener('change', updateBulkBar);
+  });
+
+  window.clearSelection = function () {
+    rowChecks.forEach(function (cb) { cb.checked = false; });
+    if (selectAll) selectAll.checked = false;
+    updateBulkBar();
+  };
+
+  window.bulkAssign = function () {
+    const ids = Array.from(document.querySelectorAll('.mg-row-check:checked'))
+      .map(function (cb) { return cb.value; });
+    if (!ids.length) return;
+    // Simple prompt-based assign; replace with proper modal in production
+    const officerId = prompt(
+      'Enter Officer ID to assign ' + ids.length + ' complaint(s) to.\n\n' +
+      'You can find officer IDs in Admin → Users.\n\n' +
+      '(This is a lightweight demo — for full UI add a modal.)'
+    );
+    if (!officerId) return;
+    if (!/^\d+$/.test(officerId)) { alert('Invalid officer ID'); return; }
+
+    // Submit each — sequential to keep it simple
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.style.display = 'none';
+
+    ids.forEach(function (id) {
+      // Note: this demo only works if backend supports a bulk endpoint.
+      // For now — we do one-by-one redirect based approach would break CSRF.
+      // Instead just alert that bulk endpoint is needed.
+    });
+    alert(
+      'Bulk assign is a UI preview.\n\n' +
+      'To make it functional, add POST /admin/complaints/bulk-assign endpoint in app.py ' +
+      'that accepts JSON: { complaint_ids: [...], officer_id: N }'
+    );
+  };
+
+  /* ---------- Initial bulk state ---------- */
+  updateBulkBar();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}Update Log{% endblock %}
+{% block page_title %}All Status Updates{% endblock %}
+
+{% block content %}
+<style>
+  .up-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: #fff;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .up-hero::after {
+    content: ""; position: absolute;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,.08);
+    border-radius: 50%;
+    top: -80px; right: -60px;
+  }
+  .up-hero h4 { font-weight: 700; margin-bottom: 4px; position: relative; z-index: 2; }
+  .up-hero p { opacity: .85; margin: 0; font-size: .88rem; position: relative; z-index: 2; }
+
+  .up-filter {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eef0f4;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .up-filter input,
+  .up-filter select {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: .85rem;
+    transition: all .15s;
+  }
+  .up-filter input:focus,
+  .up-filter select:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+    outline: none;
+  }
+
+  .up-stat-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eef0f4;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .up-stat-card h6 {
+    font-size: .74rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 10px;
+  }
+  .up-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: .82rem;
+    border-bottom: 1px dashed #f3f4f6;
+  }
+  .up-stat-row:last-child { border-bottom: 0; }
+  .up-stat-row .label { color: #6b7280; }
+  .up-stat-row .value { font-weight: 700; color: #111827; }
+
+  .up-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #eef0f4;
+  }
+  .up-table thead th {
+    background: #fafbfd;
+    padding: 10px 12px;
+    font-size: .72rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    text-align: left;
+    border-bottom: 1px solid #eef0f4;
+  }
+  .up-table tbody td {
+    padding: 10px 12px;
+    font-size: .82rem;
+    border-bottom: 1px solid #f5f7fb;
+    vertical-align: top;
+  }
+  .up-table tbody tr:hover { background: #fafbfd; }
+  .up-trk {
+    font-family: 'Courier New', monospace;
+    font-size: .74rem;
+    font-weight: 700;
+    color: #4f46e5;
+    background: #eef2ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .up-msg {
+    font-size: .82rem;
+    color: #374151;
+    line-height: 1.5;
+    max-width: 300px;
+  }
+  .up-avatar-mini {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .6rem;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  .up-pagination {
+    display: flex; justify-content: center; gap: 6px; margin-top: 20px;
+  }
+  .up-pagination a,
+  .up-pagination span {
+    min-width: 34px; height: 34px; padding: 0 10px;
+    border-radius: 8px; border: 1px solid #e5e7eb;
+    background: #fff; color: #374151;
+    display: inline-flex; align-items: center; justify-content: center;
+    text-decoration: none; font-size: .82rem; font-weight: 600;
+  }
+  .up-pagination a:hover { background: #f5f3ff; border-color: #c7d2fe; color: #4f46e5; }
+  .up-pagination .active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+  .up-pagination .disabled { opacity: .4; pointer-events: none; }
+
+  /* Reopened icon accent */
+  .up-status-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .up-status-cell i { font-size: .72rem; }
+</style>
+
+<div class="up-hero">
+  <h4><i class="bi bi-clock-history me-2"></i>All Status Updates</h4>
+  <p>Complete audit log of every status change in the system.</p>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-9">
+
+    {# --- Filter --- #}
+    <form method="get" class="up-filter">
+      <input type="text" name="q" value="{{ search }}"
+             placeholder="Search tracking ID or title..." style="flex:1; min-width:180px;">
+      <select name="status" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for s in STATUSES %}
+          <option value="{{ s }}" {{ 'selected' if status_filter == s }}>{{ s }}</option>
+        {% endfor %}
+        <option value="Reopened" {{ 'selected' if status_filter == 'Reopened' }}>Reopened</option>
+      </select>
+      <select name="by" onchange="this.form.submit()">
+        <option value="">By Anyone</option>
+        {% for u in staff %}
+          <option value="{{ u.id }}" {{ 'selected' if officer_filter == u.id }}>
+            {{ u.name }} ({{ u.role }})
+          </option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm px-3">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+      {% if search or status_filter or officer_filter %}
+      <a href="{{ url_for('admin_updates') }}" class="btn btn-light btn-sm">
+        <i class="bi bi-x-lg"></i> Clear
+      </a>
+      {% endif %}
+    </form>
+
+    {# --- Table --- #}
+    {% if updates %}
+    <div class="table-responsive">
+      <table class="up-table">
+        <thead>
+          <tr>
+            <th>Complaint</th>
+            <th>Status</th>
+            <th>Message</th>
+            <th>By</th>
+            <th>When</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in updates %}
+            {% set u_status = u.status or 'Pending' %}
+            {% set u_badge = {
+              'Pending':     'secondary',
+              'In Review':   'info',
+              'Assigned':    'primary',
+              'In Progress': 'warning',
+              'Resolved':    'success',
+              'Closed':      'dark',
+              'Rejected':    'danger',
+              'Reopened':    'warning'
+            }.get(u_status, 'secondary') %}
+            {% set u_icon = {
+              'Pending':     'bi-hourglass',
+              'In Review':   'bi-search',
+              'Assigned':    'bi-person-check',
+              'In Progress': 'bi-tools',
+              'Resolved':    'bi-check-circle',
+              'Closed':      'bi-lock',
+              'Rejected':    'bi-x-octagon',
+              'Reopened':    'bi-arrow-counterclockwise'
+            }.get(u_status, 'bi-circle') %}
+            <tr>
+              <td>
+                {% if u.complaint %}
+                  <a href="{{ url_for('complaint_detail', cid=u.complaint.id) }}"
+                     class="text-decoration-none">
+                    <span class="up-trk">{{ u.complaint.tracking_id }}</span>
+                    <div class="small fw-semibold text-dark mt-1">
+                      {{ u.complaint.title|truncate(32) }}
+                    </div>
+                  </a>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="up-status-cell badge bg-{{ u_badge }}">
+                  <i class="bi {{ u_icon }}"></i>
+                  {{ u_status }}
+                </span>
+              </td>
+              <td>
+                <div class="up-msg">{{ u.message|truncate(80) if u.message else '—' }}</div>
+              </td>
+              <td class="small">
+                {% if u.author %}
+                  <span class="up-avatar-mini">{{ u.author.initials }}</span>
+                  {{ u.author.name }}
+                  <div class="text-muted" style="font-size:.68rem;">{{ u.author.role|upper }}</div>
+                {% else %}
+                  <span class="text-muted"><i class="bi bi-robot"></i> System</span>
+                {% endif %}
+              </td>
+              <td class="small text-muted">
+                {{ u.created_at.strftime('%d %b %Y') }}<br>
+                <span style="font-size:.7rem">{{ u.created_at.strftime('%I:%M %p') }}</span>
+              </td>
+              <td>
+                {% if u.complaint %}
+                  <a href="{{ url_for('complaint_detail', cid=u.complaint.id) }}"
+                     class="btn btn-sm btn-light">
+                    <i class="bi bi-arrow-right"></i>
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# --- Pagination --- #}
+    {% if pagination.pages > 1 %}
+    <nav class="up-pagination">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('admin_updates', page=pagination.prev_num, status=status_filter, q=search, by=officer_filter) }}">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      {% else %}
+        <span class="disabled"><i class="bi bi-chevron-left"></i></span>
+      {% endif %}
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          {% if p == pagination.page %}
+            <span class="active">{{ p }}</span>
+          {% else %}
+            <a href="{{ url_for('admin_updates', page=p, status=status_filter, q=search, by=officer_filter) }}">{{ p }}</a>
+          {% endif %}
+        {% else %}
+          <span class="disabled">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if pagination.has_next %}
+        <a href="{{ url_for('admin_updates', page=pagination.next_num, status=status_filter, q=search, by=officer_filter) }}">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      {% else %}
+        <span class="disabled"><i class="bi bi-chevron-right"></i></span>
+      {% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="card p-5 text-center">
+      <i class="bi bi-inbox" style="font-size:3rem;color:#c7d2fe;"></i>
+      <h5 class="mt-3 fw-bold">No Updates Found</h5>
+      <p class="text-muted">No status changes match your filters.</p>
+      {% if search or status_filter or officer_filter %}
+      <a href="{{ url_for('admin_updates') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# --- Right Sidebar: Stats --- #}
+  <div class="col-lg-3">
+    <div class="up-stat-card">
+      <h6><i class="bi bi-bar-chart"></i> By Status</h6>
+      {% set status_order = [
+        'Pending', 'In Review', 'Assigned', 'In Progress',
+        'Resolved', 'Closed', 'Rejected', 'Reopened'
+      ] %}
+      {% for s in status_order %}
+        {% set count = status_counts.get(s, 0) %}
+        {% if count %}
+        <div class="up-stat-row">
+          <span class="label">
+            {% if s == 'Reopened' %}
+              <i class="bi bi-arrow-counterclockwise text-warning me-1"></i>
+            {% endif %}
+            {{ s }}
+          </span>
+          <span class="value">{{ count }}</span>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="up-stat-card bg-light">
+      <h6><i class="bi bi-info-circle"></i> About</h6>
+      <p class="small text-muted mb-0">
+        Every status update generates a permanent log entry for auditing.
+        Filter by staff member or status type above.
+      </p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,307 @@
+{% extends layout|default('base.html') %}
+
+{% block title %}Track Complaint{% endblock %}
+{% block page_title %}Complaint Tracking{% endblock %}
+
+{% block content %}
+<style>
+  /* ============ TRACK HERO ============ */
+  .trk-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #06b6d4 100%);
+    border-radius: 20px;
+    padding: 40px 30px;
+    color: #fff;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+  }
+  .trk-hero::before {
+    content: ""; position: absolute; width: 300px; height: 300px;
+    background: rgba(255,255,255,.08); border-radius: 50%; top: -100px; right: -80px;
+  }
+  .trk-hero::after {
+    content: ""; position: absolute; width: 150px; height: 150px;
+    background: rgba(255,255,255,.05); border-radius: 50%; bottom: -50px; left: 10%;
+  }
+  .trk-hero h3 { font-weight: 800; font-size: 2rem; margin-bottom: 8px; position: relative; z-index: 2; }
+  .trk-hero p { opacity: .85; font-size: 1rem; margin-bottom: 24px; position: relative; z-index: 2; }
+
+  /* ============ SEARCH BOX ============ */
+  .search-box-wrap {
+    background: #fff; border-radius: 16px; padding: 8px;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+    position: relative; z-index: 2; max-width: 700px;
+  }
+  .search-box-wrap .bi-search {
+    font-size: 1.2rem; color: #94a3b8; padding-left: 12px;
+  }
+  .search-box-wrap input {
+    border: 0; background: transparent; font-size: 1.05rem;
+    padding: 10px; color: #1e293b; font-weight: 600; width: 100%;
+  }
+  .search-box-wrap input:focus { outline: none; box-shadow: none; }
+  .search-box-wrap input::placeholder { color: #94a3b8; font-weight: 400; }
+  
+  .btn-track {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #fff; border: 0; border-radius: 12px;
+    padding: 12px 30px; font-weight: 700; font-size: 1rem;
+    transition: all .2s ease; white-space: nowrap;
+  }
+  .btn-track:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,.4); color: #fff; }
+  .btn-track:disabled { opacity: .7; cursor: not-allowed; }
+
+  /* Hint Pills */
+  .hint-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; position: relative; z-index: 2; }
+  .hint-pill {
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+    padding: 4px 12px; border-radius: 20px; font-size: .75rem;
+    display: inline-flex; align-items: center; gap: 6px; color: #e0e7ff;
+  }
+
+  /* Recent Searches */
+  .recent-searches { margin-top: 20px; position: relative; z-index: 2; display: none; }
+  .recent-searches span { font-size: .8rem; opacity: .8; margin-right: 8px; }
+  .recent-pill {
+    background: #fff; color: #4f46e5; border: 1px solid #e2e8f0;
+    padding: 4px 12px; border-radius: 20px; font-size: .75rem;
+    font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block;
+    margin: 2px; transition: all .15s;
+  }
+  .recent-pill:hover { background: #eff6ff; border-color: #bfdbfe; color: #4f46e5; }
+
+  /* ============ FEATURE CARDS ============ */
+  .feat-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    padding: 24px; text-align: center; height: 100%;
+    transition: all .2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .feat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px -5px rgba(0,0,0,0.05); border-color: #c7d2fe; }
+  .feat-icon {
+    width: 56px; height: 56px; border-radius: 16px;
+    background: #eff6ff; color: #3b82f6;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin-bottom: 16px;
+  }
+  .feat-card h6 { font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+  .feat-card p { font-size: .85rem; color: #64748b; margin-bottom: 0; }
+
+  /* ============ RESULT / EMPTY STATE ============ */
+  .result-area { margin-top: 24px; }
+  .empty-state {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    padding: 40px 20px; text-align: center;
+  }
+  .empty-state i { font-size: 3rem; color: #cbd5e1; margin-bottom: 16px; display: block; }
+  .empty-state h5 { font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+  .empty-state p { color: #64748b; font-size: .9rem; margin-bottom: 20px; }
+
+  /* ============ FAQ SECTION ============ */
+  .faq-wrap { max-width: 800px; margin: 0 auto; }
+  .accordion-button:not(.collapsed) { background-color: #eff6ff; color: #4f46e5; box-shadow: none; }
+  .accordion-button:focus { box-shadow: none; border-color: rgba(0,0,0,.125); }
+  .accordion-item { border-radius: 12px !important; margin-bottom: 10px; border: 1px solid #e2e8f0; overflow: hidden; }
+</style>
+
+<div class="container-fluid py-2">
+  <!-- HERO SECTION -->
+  <div class="trk-hero text-center">
+    <h3><i class="bi bi-search me-2"></i>Track Your Complaint</h3>
+    <p>Enter your unique Tracking ID to see the current status and full progress timeline.</p>
+
+    <div class="d-flex justify-content-center">
+      <form method="POST" action="{{ url_for('track') }}" class="search-box-wrap" id="trackForm">
+        <i class="bi bi-qr-code-scan"></i>
+        <input type="text" name="tracking_id" id="trackingIdInput" class="form-control" 
+               placeholder="CMP-20250101-AB12" value="{{ tid or '' }}" 
+               required autocomplete="off" style="text-transform: uppercase;">
+        <button type="submit" class="btn-track" id="trackBtn">
+          <span class="spinner-border spinner-border-sm d-none me-1" id="trackSpinner" role="status"></span>
+          <i class="bi bi-search me-1" id="trackIcon"></i> Track
+        </button>
+      </form>
+    </div>
+
+    <div class="d-flex justify-content-center">
+      <div class="hint-pills">
+        <span class="hint-pill"><i class="bi bi-upc-scan"></i> Format: CMP-YYYYMMDD-XXXX</span>
+        <span class="hint-pill"><i class="bi bi-envelope"></i> Found in your confirmation message</span>
+        <span class="hint-pill"><i class="bi bi-globe"></i> Public — no login needed</span>
+      </div>
+    </div>
+
+    <!-- Recent Searches (Populated via JS) -->
+    <div class="recent-searches d-flex justify-content-center align-items-center flex-wrap" id="recentSearches">
+      <span><i class="bi bi-clock-history me-1"></i> Recent:</span>
+      <!-- Pills will be injected here -->
+    </div>
+  </div>
+
+  <!-- RESULT AREA -->
+  {% if complaint %}
+    <div class="result-area">
+      <div class="alert alert-success d-flex align-items-center mb-3 shadow-sm border-0" style="border-radius: 12px; background: #ecfdf5; color: #065f46;">
+        <i class="bi bi-check-circle-fill fs-4 me-2"></i>
+        <div>
+          <strong>Complaint Found!</strong> Showing details for <code>{{ complaint.tracking_id }}</code>.
+          <a href="{{ url_for('complaint_detail', cid=complaint.id) }}" class="btn btn-sm btn-success ms-3 rounded-pill fw-semibold">
+            View Full Details <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+      <!-- Optional: You can include a mini-timeline or summary card here -->
+    </div>
+  {% elif request.method == 'POST' %}
+    <div class="result-area">
+      <div class="alert alert-danger d-flex align-items-center shadow-sm border-0" style="border-radius: 12px; background: #fef2f2; color: #991b1b;">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+        <div>
+          <strong>Not Found.</strong> No complaint found with Tracking ID <code>{{ tid }}</code>. Please check and try again.
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <!-- EMPTY STATE (Before Search) -->
+    <div class="result-area">
+      <div class="empty-state">
+        <i class="bi bi-file-earmark-text"></i>
+        <h5>Ready to track your complaint?</h5>
+        <p>Enter your Tracking ID above to see live status, assigned officer, and resolution timeline.</p>
+      </div>
+    </div>
+  {% endif %}
+
+
+  
+
+  <!-- FAQ SECTION -->
+  <div class="faq-wrap mb-5">
+    <h5 class="fw-bold text-center mb-4"><i class="bi bi-question-circle text-primary me-2"></i> Frequently Asked Questions</h5>
+    <div class="accordion" id="faqAccordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+            Where do I find my Tracking ID?
+          </button>
+        </h2>
+        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body text-muted small">
+            Your Tracking ID is provided immediately after you submit a complaint. It is also sent to your registered email address and can be found in your "My Complaints" dashboard.
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+            I lost my Tracking ID. What should I do?
+          </button>
+        </h2>
+        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body text-muted small">
+            If you are logged in, you can view all your complaints and their Tracking IDs from your <a href="{{ url_for('complaints_list') }}">Complaints Dashboard</a>. If you are not logged in, please contact support with your registered email.
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+            How often is the status updated?
+          </button>
+        </h2>
+        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body text-muted small">
+            The status is updated in real-time by our administrators and assigned officers. Whenever an action is taken, you will see a new entry in the activity timeline instantly.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById('trackForm');
+  const input = document.getElementById('trackingIdInput');
+  const btn = document.getElementById('trackBtn');
+  const spinner = document.getElementById('trackSpinner');
+  const icon = document.getElementById('trackIcon');
+
+  // 1. Handle Loading Spinner on Submit
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      const val = input.value.trim().toUpperCase();
+      
+      // Basic Regex Validation (CMP-YYYYMMDD-XXXX)
+      const pattern = /^CMP-\d{8}-[A-Z0-9]{4}$/;
+      if (!pattern.test(val)) {
+        e.preventDefault();
+        alert('Invalid Tracking ID format.\nExample: CMP-20250101-AB12');
+        input.focus();
+        return;
+      }
+
+      // Save to local storage
+      saveRecentSearch(val);
+
+      // Show loading state
+      btn.disabled = true;
+      spinner.classList.remove('d-none');
+      icon.classList.add('d-none');
+    });
+  }
+
+  // 2. Recent Searches Logic (LocalStorage)
+  const recentContainer = document.getElementById('recentSearches');
+  
+  function getRecentSearches() {
+    const stored = localStorage.getItem('recentTrackingIds');
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  function saveRecentSearch(id) {
+    let searches = getRecentSearches();
+    // Remove if already exists to move it to front
+    searches = searches.filter(item => item !== id);
+    searches.unshift(id);
+    // Keep only latest 5
+    searches = searches.slice(0, 5);
+    localStorage.setItem('recentTrackingIds', JSON.stringify(searches));
+  }
+
+  function renderRecentSearches() {
+    const searches = getRecentSearches();
+    if (searches.length === 0) return;
+
+    recentContainer.style.display = 'flex';
+    // Remove all pills but keep the "Recent:" span
+    Array.from(recentContainer.children).forEach(child => {
+      if (child.tagName === 'A') child.remove();
+    });
+
+    searches.forEach(id => {
+      const a = document.createElement('a');
+      a.href = '#';
+      a.className = 'recent-pill';
+      a.innerHTML = `<i class="bi bi-clock me-1"></i>${id}`;
+      a.addEventListener('click', function(e) {
+        e.preventDefault();
+        input.value = id;
+        form.submit();
+      });
+      recentContainer.appendChild(a);
+    });
+  }
+
+  renderRecentSearches();
+
+  // Auto-uppercase input
+  input.addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+  });
+});
+</script>
+{% endblock %}

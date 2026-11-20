@@ -1,0 +1,1179 @@
+{% extends "base.html" %}
+{% block title %}{{ c.tracking_id }}{% endblock %}
+{% block page_title %}Complaint Details{% endblock %}
+
+{% block content %}
+<style>
+  /* ============ GLOBAL & TYPOGRAPHY ============ */
+  body { background-color: #f8fafc; }
+  .card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+  }
+  .card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); }
+  .card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 1.25rem 1.5rem;
+  }
+
+  /* ============ HERO SECTION ============ */
+  .dt-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 50%, #06b6d4 100%);
+    border-radius: 20px; padding: 28px 32px; color: #fff;
+    margin-bottom: 24px; position: relative; overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+  }
+  .dt-hero::after {
+    content: ""; position: absolute; width: 250px; height: 250px;
+    background: rgba(255,255,255,.1); border-radius: 50%; top: -100px; right: -50px;
+  }
+  .dt-hero h4 { font-weight: 800; margin: 8px 0; position: relative; z-index: 2; letter-spacing: -0.5px; }
+  .dt-hero .trk {
+    font-family: 'Courier New', monospace; background: rgba(255,255,255,.2);
+    padding: 4px 12px; border-radius: 8px; font-size: .85rem; font-weight: 700;
+    position: relative; z-index: 2; border: 1px solid rgba(255,255,255,.3);
+  }
+  .dt-hero .meta { opacity: .9; font-size: .9rem; position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+  .dt-hero .status-badge {
+    position: relative; z-index: 2; background: #fff; color: #4f46e5;
+    padding: 8px 18px; border-radius: 30px; font-size: .85rem; font-weight: 800;
+    box-shadow: 0 4px 10px rgba(0,0,0,.15);
+  }
+
+  /* ============ ATTACHMENTS GRID ============ */
+  .dt-attach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }
+  .dt-thumb {
+    position: relative; aspect-ratio: 1 / 1; border-radius: 12px;
+    overflow: hidden; cursor: pointer; border: 2px solid transparent;
+    background: #f1f5f9; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .dt-thumb:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: #4f46e5; }
+  .dt-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
+  .dt-thumb:hover img { transform: scale(1.1); }
+  .dt-thumb-overlay {
+    position: absolute; inset: 0; background: rgba(79, 70, 229, 0.4);
+    display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease;
+  }
+  .dt-thumb:hover .dt-thumb-overlay { opacity: 1; }
+  .dt-thumb-label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    color: #fff; padding: 20px 10px 8px; font-size: .75rem; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Document Attachments */
+  .dt-doc-row {
+    display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+    border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc;
+    text-decoration: none; color: #1e293b; transition: all .15s; margin-bottom: 10px;
+  }
+  .dt-doc-row:hover { border-color: #4f46e5; background: #eff6ff; color: #4f46e5; }
+  .dt-doc-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+
+  /* ============ OFFICER SELECTION ============ */
+  .off-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .off-card { position: relative; cursor: pointer; margin: 0; }
+  .off-card input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+  .off-card-body {
+    background: #fff; border: 2px solid #e5e7eb; border-radius: 12px;
+    padding: 14px; display: flex; gap: 12px; align-items: flex-start;
+    transition: all .18s ease; position: relative;
+  }
+  .off-card:hover .off-card-body { border-color: #c7d2fe; background: #fafbff; transform: translateY(-1px); }
+  .off-card input:checked + .off-card-body { border-color: #4f46e5; background: #eef2ff; box-shadow: 0 4px 14px rgba(79,70,229,.18); }
+  .off-card.is-current .off-card-body { border-style: dashed; border-color: #10b981; background: #ecfdf5; }
+  .off-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4338ca); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .95rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(79,70,229,.25);
+  }
+  .off-info { flex: 1; min-width: 0; }
+  .off-name { font-weight: 700; font-size: .9rem; color: #111827; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .off-dept { font-size: .74rem; color: #6b7280; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .off-workload { display: flex; gap: 4px; flex-wrap: wrap; }
+  .off-workload .wl-badge { font-size: .66rem; padding: 2px 7px; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+  .wl-active { background: #fef3c7; color: #b45309; }
+  .wl-resolved { background: #d1fae5; color: #065f46; }
+  .off-check { position: absolute; top: 10px; right: 10px; color: #4f46e5; font-size: 1.2rem; opacity: 0; transform: scale(.6); transition: all .2s; }
+  .off-card input:checked + .off-card-body .off-check { opacity: 1; transform: scale(1); }
+  .off-card.is-current .off-card-body .off-check { color: #10b981; opacity: 1; transform: scale(1); }
+  .current-label {
+    position: absolute; top: -8px; right: 10px; background: #10b981; color: #fff;
+    font-size: .62rem; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+    text-transform: uppercase; letter-spacing: .3px;
+  }
+
+  /* ============ ASSIGNMENT HISTORY ============ */
+  .ah-timeline { position: relative; list-style: none; padding: 0; margin: 0; }
+  .ah-timeline::before { content: ""; position: absolute; left: 15px; top: 10px; bottom: 10px; width: 2px; background: #e5e7eb; }
+  .ah-item { position: relative; padding: 0 0 18px 44px; }
+  .ah-item:last-child { padding-bottom: 0; }
+  .ah-dot {
+    position: absolute; left: 4px; top: 2px; width: 24px; height: 24px;
+    border-radius: 50%; background: #fff; border: 3px solid #4f46e5; color: #4f46e5;
+    display: flex; align-items: center; justify-content: center; font-size: .62rem; z-index: 2;
+  }
+  .ah-item.current .ah-dot { background: #10b981; border-color: #10b981; color: #fff; box-shadow: 0 0 0 4px rgba(16,185,129,.15); }
+  .ah-body { background: #fafbfd; border: 1px solid #eef0f4; border-radius: 10px; padding: 10px 14px; }
+  .ah-item.current .ah-body { background: #ecfdf5; border-color: #a7f3d0; }
+  .ah-officer { font-weight: 700; color: #111827; font-size: .88rem; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+  .ah-meta { font-size: .72rem; color: #6b7280; display: flex; flex-wrap: wrap; gap: 10px; }
+  .ah-meta i { margin-right: 3px; }
+  .ah-notes { font-size: .8rem; color: #374151; background: #fff; padding: 6px 10px; border-radius: 6px; margin-top: 6px; border-left: 3px solid #c7d2fe; }
+
+  /* ============ STATUS UPDATE ============ */
+  .su-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+  .su-opt { position: relative; cursor: pointer; margin: 0; }
+  .su-opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .su-opt-body {
+    border: 2px solid #e5e7eb; border-radius: 12px; padding: 12px 10px;
+    text-align: center; background: #fff; transition: all .15s ease; position: relative; overflow: hidden;
+  }
+  .su-opt:hover .su-opt-body { border-color: #c7d2fe; background: #fafbff; transform: translateY(-1px); }
+  .su-opt input:checked + .su-opt-body { border-color: #4f46e5; background: #eef2ff; box-shadow: 0 4px 12px rgba(79,70,229,.18); }
+  .su-opt.is-current .su-opt-body { border-color: #10b981; background: #ecfdf5; cursor: not-allowed; opacity: .85; }
+  .su-opt.is-current:hover .su-opt-body { transform: none; }
+  .su-icon { font-size: 1.3rem; color: #6b7280; margin-bottom: 4px; transition: color .15s; }
+  .su-opt:hover .su-icon { color: #4f46e5; }
+  .su-opt input:checked + .su-opt-body .su-icon { color: #4f46e5; }
+  .su-opt.is-current .su-opt-body .su-icon { color: #10b981; }
+  .su-label { font-size: .78rem; font-weight: 700; color: #374151; }
+  .su-opt input:checked + .su-opt-body .su-label { color: #4f46e5; }
+  .su-opt.is-current .su-opt-body .su-label { color: #065f46; }
+  .su-current-tag {
+    position: absolute; top: 4px; right: 4px; font-size: .55rem; background: #10b981; color: #fff;
+    padding: 1px 5px; border-radius: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  }
+  .su-opt.is-final:hover .su-opt-body { border-color: #fca5a5; background: #fef2f2; }
+  .su-preview { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 10px 14px; margin-top: 10px; }
+
+  /* ============ UPDATE HISTORY TIMELINE ============ */
+  .uh-timeline { position: relative; list-style: none; padding: 0; margin: 0; }
+  .uh-timeline::before { content: ""; position: absolute; left: 20px; top: 15px; bottom: 15px; width: 3px; background: #e2e8f0; border-radius: 3px; }
+  .uh-item { position: relative; padding: 0 0 28px 56px; }
+  .uh-item:last-child { padding-bottom: 0; }
+  .uh-dot {
+    position: absolute; left: 4px; top: 0; width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: .9rem;
+    box-shadow: 0 0 0 4px #fff, 0 2px 5px rgba(0,0,0,0.1); z-index: 2;
+  }
+  .uh-body { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; transition: all .2s; }
+  .uh-item.uh-current .uh-body { background: #eff6ff; border-color: #bfdbfe; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
+  .uh-message {
+    font-size: .9rem; color: #1e293b; line-height: 1.6; margin: 12px 0; padding: 12px 16px;
+    background: #ffffff; border-radius: 8px; border-left: 4px solid #4f46e5; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .uh-meta { display: flex; align-items: center; gap: 12px; font-size: .8rem; color: #64748b; }
+  .uh-avatar {
+    width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #4338ca);
+    color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 700;
+  }
+
+  /* ============ SIDEBAR ============ */
+  .dt-side-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+  .dt-side-card h6 { font-size: .85rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .dt-info-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: .88rem; border-bottom: 1px dashed #e2e8f0; }
+  .dt-info-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .dt-info-row .lbl { color: #64748b; font-weight: 500; }
+  .dt-info-row .val { font-weight: 700; color: #1e293b; text-align: right; }
+
+  /* ============ MODAL ============ */
+  .modal-content { border-radius: 16px; border: none; overflow: hidden; }
+  .modal-header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 16px 24px; }
+  .modal-body.bg-dark { background: #0f172a !important; }
+
+  /* ============ FEEDBACK SECTION ============ */
+  .fb-icon-wrap {
+    width: 60px; height: 60px; margin: 0 auto 12px; background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #d97706; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; box-shadow: 0 4px 12px rgba(245, 158, 11, .2);
+  }
+  .fb-rating-area { text-align: center; padding: 20px 0 24px; background: linear-gradient(180deg, #fef9f3 0%, #ffffff 100%); border-radius: 12px; margin-bottom: 20px; border: 1px dashed #fde68a; }
+  .fb-emoji { font-size: 2.4rem; line-height: 1; margin-bottom: 12px; transition: transform .2s ease; min-height: 40px; }
+  .fb-stars { display: flex; flex-direction: row-reverse; justify-content: center; gap: 6px; margin-bottom: 10px; }
+  .fb-stars input { position: absolute; opacity: 0; pointer-events: none; }
+  .fb-stars label { cursor: pointer; font-size: 2.4rem; color: #d1d5db; transition: all .15s ease; line-height: 1; padding: 4px; }
+  .fb-stars label:hover, .fb-stars label:hover ~ label, .fb-stars input:checked ~ label { color: #f59e0b; transform: scale(1.15); text-shadow: 0 4px 12px rgba(245, 158, 11, .4); }
+  .fb-label { font-size: .85rem; font-weight: 600; color: #6b7280; transition: color .2s; min-height: 20px; }
+  .fb-label.has-value { color: #d97706; }
+</style>
+
+{# ============ HERO ============ #}
+<div class="dt-hero">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div class="flex-grow-1">
+      <span class="trk"><i class="bi bi-hash"></i>{{ c.tracking_id }}</span>
+      <h4>{{ c.title }}</h4>
+      <div class="meta">
+        <span><i class="bi bi-tag-fill text-warning me-1"></i> {{ c.category.name if c.category else '—' }}</span>
+        {% if c.location %}
+        <span><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ c.location }}</span>
+        {% endif %}
+        <span><i class="bi bi-calendar-event-fill text-info me-1"></i> <span class="local-time" data-time="{{ c.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ c.created_at.strftime('%d %b %Y, %I:%M %p') }}</span></span>
+      </div>
+    </div>
+    <div class="text-end d-flex flex-column align-items-end gap-2">
+      <span class="status-badge">
+        <i class="bi bi-circle-fill me-1" style="font-size:.5rem;"></i>{{ c.status }}
+      </span>
+      <span class="badge bg-{{ c.priority_badge }} shadow-sm px-3 py-2" style="font-size:.85rem;">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ c.priority }} Priority
+      </span>
+      
+      {% if sla and sla.status != 'no_sla' %}
+      <span class="badge bg-{{ sla.color }} shadow-sm px-3 py-2 real-time-sla" 
+            data-deadline="{{ c.sla_deadline.strftime('%Y-%m-%dT%H:%M:%SZ') if c.sla_deadline else '' }}" 
+            data-status="{{ c.status }}"
+            data-resolved-at="{{ c.resolved_at.strftime('%Y-%m-%dT%H:%M:%SZ') if c.resolved_at else '' }}"
+            style="font-size:.85rem;">
+        <i class="bi bi-stopwatch me-1"></i> <span class="sla-text">{{ sla.label }}</span>
+      </span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if c.is_escalated %}
+<div class="alert alert-danger shadow-sm border-0 d-flex align-items-center mb-4" style="border-radius: 12px;">
+  <i class="bi bi-exclamation-octagon-fill fs-3 me-3"></i>
+  <div>
+    <h6 class="fw-bold mb-1">This complaint has been escalated</h6>
+    <p class="mb-0 small">Escalated at <span class="local-time" data-time="{{ c.escalated_at.strftime('%Y-%m-%dT%H:%M:%SZ') if c.escalated_at else '' }}">{{ c.escalated_at.strftime('%d %b %Y, %I:%M %p') }}</span> due to SLA breach.</p>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  {# ============ LEFT COLUMN ============ #}
+  <div class="col-lg-8">
+    
+    {# --- Description --- #}
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center">
+        <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+          <i class="bi bi-file-text-fill fs-5"></i>
+        </div>
+        <h6 class="fw-bold mb-0">Complaint Description</h6>
+      </div>
+      <div class="card-body p-4">
+        <p class="mb-0 text-secondary" style="white-space:pre-line; line-height:1.8; font-size:1.05rem;">{{ c.description }}</p>
+      </div>
+    </div>
+
+    {# --- Attachments --- #}
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+            <i class="bi bi-paperclip fs-5"></i>
+          </div>
+          <h6 class="fw-bold mb-0">Attachments</h6>
+        </div>
+        <span class="badge bg-secondary rounded-pill">{{ c.attachments|length }}</span>
+      </div>
+      <div class="card-body p-4">
+        {% if c.attachments %}
+          {% set images = c.attachments | selectattr('is_image') | list %}
+          {% set docs = c.attachments | rejectattr('is_image') | list %}
+
+          {% if images %}
+          <div class="dt-attach-grid mb-4">
+            {% for att in images %}
+            <div class="dt-thumb" data-bs-toggle="modal" data-bs-target="#imgModal{{ att.id }}">
+              <img src="{{ url_for('uploaded_file', filename=att.filename) }}" alt="{{ att.original_name }}" loading="lazy">
+              <div class="dt-thumb-overlay"><i class="bi bi-zoom-in text-white fs-2"></i></div>
+              <div class="dt-thumb-label" title="{{ att.original_name }}">{{ att.original_name }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% for att in docs %}
+          <a href="{{ url_for('uploaded_file', filename=att.filename) }}" target="_blank" rel="noopener" class="dt-doc-row">
+            <div class="dt-doc-icon"><i class="bi bi-file-earmark-text-fill"></i></div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-bold text-dark text-truncate">{{ att.original_name }}</div>
+              <div class="text-muted small">{{ att.filename.rsplit('.', 1)[-1]|upper }} · <span class="local-time" data-time="{{ att.uploaded_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ att.uploaded_at.strftime('%d %b %Y') }}</span></div>
+            </div>
+            <i class="bi bi-download fs-5 text-muted"></i>
+          </a>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-5 bg-light rounded-3 border border-dashed">
+            <i class="bi bi-image text-muted fs-1 mb-2 d-block"></i>
+            <h6 class="text-muted fw-bold">No Image Available</h6>
+            <p class="text-muted small mb-0">No attachments were provided for this complaint.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ============ ASSIGNMENT HISTORY ============ #}
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+            <i class="bi bi-person-check-fill fs-5"></i>
+          </div>
+          <h6 class="fw-bold mb-0">Assignment History</h6>
+        </div>
+        <span class="badge bg-secondary rounded-pill">{{ assignments|length }}</span>
+      </div>
+      
+      <div class="card-body p-4">
+        {% if assignments %}
+          <ul class="ah-timeline">
+            {% for a in assignments %}
+              {% set is_current = (loop.first and c.officer_id == a.officer_id) %}
+              <li class="ah-item {{ 'current' if is_current }}">
+                <div class="ah-dot">
+                  <i class="bi {{ 'bi-check2' if is_current else 'bi-arrow-repeat' }}"></i>
+                </div>
+                <div class="ah-body">
+                  <div class="ah-officer">
+                    <span class="off-avatar" style="width:24px;height:24px;font-size:.7rem;">
+                      {{ a.officer.initials if a.officer else '?' }}
+                    </span>
+                    {{ a.officer.name if a.officer else 'Unknown' }}
+                    {% if is_current %}
+                      <span class="badge bg-success ms-1" style="font-size:.62rem;">Current</span>
+                    {% endif %}
+                  </div>
+                  <div class="ah-meta">
+                    <span><i class="bi bi-person-badge"></i>By {{ a.assigner.name if a.assigner else 'System' }}</span>
+                    <span><i class="bi bi-calendar3"></i><span class="local-time" data-time="{{ a.assigned_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ a.assigned_at.strftime('%d %b %Y, %I:%M %p') }}</span></span>
+                  </div>
+                  {% if a.notes %}
+                    <div class="ah-notes"><i class="bi bi-chat-left-text me-1"></i>{{ a.notes }}</div>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-center py-5 bg-light rounded-3 border border-dashed">
+            
+            {% if current_user.role == 'admin' %}
+              <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width:70px;height:70px;">
+                <i class="bi bi-person-plus-fill display-5"></i>
+              </div>
+              <h6 class="fw-bold text-dark mb-2">No Officer Assigned Yet</h6>
+              <p class="text-muted small mb-4 mx-auto" style="max-width: 300px;">
+                This complaint is currently unassigned. Please assign an officer to start the resolution process.
+              </p>
+              <a href="#assignForm" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+                <i class="bi bi-person-check-fill me-1"></i> Assign an Officer
+              </a>
+
+            {% else %}
+              <div class="d-inline-flex align-items-center justify-content-center bg-warning-subtle text-warning rounded-circle mb-3" style="width:70px;height:70px;">
+                <i class="bi bi-hourglass-split display-5"></i>
+              </div>
+              <h6 class="fw-bold text-dark mb-2">Waiting for Assignment</h6>
+              <p class="text-muted small mb-4 mx-auto" style="max-width: 300px;">
+                The admin is currently reviewing your complaint. An officer will be assigned shortly to resolve your issue.
+              </p>
+              
+              <div class="d-flex align-items-center justify-content-center gap-2 mx-auto" style="max-width: 250px;">
+                <div class="text-success small fw-bold"><i class="bi bi-check-circle-fill"></i> Submitted</div>
+                <div class="bg-secondary opacity-25 flex-grow-1" style="height: 2px;"></div>
+                <div class="text-primary small fw-bold"><i class="bi bi-circle-fill"></i> Assigning</div>
+                <div class="bg-secondary opacity-25 flex-grow-1" style="height: 2px;"></div>
+                <div class="text-muted small"><i class="bi bi-circle"></i> Resolving</div>
+              </div>
+            {% endif %}
+
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ============ OFFICER ASSIGNMENT FORM (Admin only) ============ #}
+    {% if current_user.role == 'admin' %}
+    <div class="card mb-4" id="assignForm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+            <i class="bi bi-person-gear fs-5"></i>
+          </div>
+          <h6 class="fw-bold mb-0">{% if c.officer %}Reassign Officer{% else %}Assign Officer{% endif %}</h6>
+        </div>
+        {% if c.officer %}
+        <span class="badge bg-success-subtle text-success border border-success-subtle">
+          <i class="bi bi-check-circle-fill me-1"></i>Currently: {{ c.officer.name }}
+        </span>
+        {% endif %}
+      </div>
+
+      <div class="card-body p-4">
+        {% if officers %}
+        <form method="post" action="{{ url_for('assign_officer', cid=c.id) }}" id="assignOfficerForm">
+          <div class="mb-3">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+              <input type="text" id="offSearch" class="form-control" placeholder="Search officer by name or department...">
+            </div>
+          </div>
+
+          <div class="off-grid" id="offGrid">
+            {% for o in officers %}
+              {% set stat = officer_stats.get(o.id, {'active': 0, 'resolved': 0}) %}
+              <label class="off-card {{ 'is-current' if c.officer_id == o.id }}" data-name="{{ o.name|lower }}" data-dept="{{ (o.department or '')|lower }}">
+                <input type="radio" name="officer_id" value="{{ o.id }}" {{ 'checked' if c.officer_id == o.id }} required>
+                <div class="off-card-body">
+                  {% if c.officer_id == o.id %}<span class="current-label">Current</span>{% endif %}
+                  <div class="off-avatar">{{ o.initials }}</div>
+                  <div class="off-info">
+                    <div class="off-name">{{ o.name }}</div>
+                    <div class="off-dept">{{ o.department or 'General' }}</div>
+                    <div class="off-workload">
+                      <span class="wl-badge wl-active"><i class="bi bi-gear-fill" style="font-size:.55rem;"></i>{{ stat.active }} active</span>
+                      <span class="wl-badge wl-resolved"><i class="bi bi-check-circle-fill" style="font-size:.55rem;"></i>{{ stat.resolved }} resolved</span>
+                    </div>
+                  </div>
+                  <i class="bi bi-check-circle-fill off-check"></i>
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Assignment Notes <span class="text-muted">(optional)</span></label>
+            <textarea name="notes" rows="2" class="form-control form-control-sm" placeholder="Add a note or instruction for the officer..."></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" id="assignBtn">
+              <i class="bi bi-check2-circle me-1"></i> {% if c.officer %}Reassign Complaint{% else %}Assign Complaint{% endif %}
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="bi bi-person-x text-muted fs-1 mb-2 d-block"></i>
+          <h6 class="fw-bold text-muted">No active officers available</h6>
+          <p class="text-muted small mb-0">Add an officer first to assign complaints.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ============ STATUS UPDATE (Admin / Officer) ============ #}
+    {% if current_user.role in ['admin', 'officer'] %}
+    <div class="card mb-4" id="status">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+            <i class="bi bi-arrow-repeat fs-5"></i>
+          </div>
+          <h6 class="fw-bold mb-0">Update Status</h6>
+        </div>
+        <span class="badge bg-{{ c.status_badge }} fs-6">
+          <i class="bi bi-circle-fill me-1" style="font-size:.5rem;"></i>Current: {{ c.status }}
+        </span>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="post" action="{{ url_for('update_status', cid=c.id) }}" id="statusForm">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold mb-2">New Status <span class="text-danger">*</span></label>
+            {% set allowed = STATUSES if current_user.role == 'admin' else ['In Progress', 'Resolved'] %}
+            {% set status_icons = {'Pending':'bi-hourglass-split','In Review':'bi-clipboard-check','Assigned':'bi-person-check','In Progress':'bi-tools','Resolved':'bi-check-circle','Closed':'bi-lock','Rejected':'bi-x-octagon'} %}
+            <div class="su-grid">
+              {% for s in allowed %}
+                {% set is_current = (s == c.status) %}
+                {% set is_final = (s in ['Resolved', 'Closed', 'Rejected']) %}
+                <label class="su-opt {{ 'is-current' if is_current }} {{ 'is-final' if is_final }}" data-status="{{ s }}">
+                  <input type="radio" name="status" value="{{ s }}" {{ 'disabled' if is_current }} required>
+                  <div class="su-opt-body">
+                    <div class="su-icon"><i class="bi {{ status_icons.get(s, 'bi-circle') }}"></i></div>
+                    <div class="su-label">{{ s }}</div>
+                    {% if is_current %}<span class="su-current-tag">Current</span>{% endif %}
+                  </div>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">
+              Remarks / Message <span class="text-danger" id="remarkRequired" style="display:none;">*</span>
+              <span class="text-muted fw-normal">(visible in timeline & to the user)</span>
+            </label>
+            <textarea name="message" id="statusMessage" rows="3" class="form-control form-control-sm" maxlength="500" placeholder="What changed? Add context for the complainant..."></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <small class="text-muted" id="remarkHint"><i class="bi bi-info-circle"></i> Required when marking as Resolved, Closed, or Rejected.</small>
+              <small class="text-muted"><span id="remarkCount">0</span> / 500</small>
+            </div>
+          </div>
+
+          <div class="su-preview" id="suPreview" style="display:none;">
+            <div class="d-flex align-items-center gap-2 small">
+              <span class="badge bg-{{ c.status_badge }}">{{ c.status }}</span>
+              <i class="bi bi-arrow-right text-muted"></i>
+              <span class="badge bg-secondary" id="previewNewBadge">—</span>
+              <span class="text-muted ms-1" id="previewNote">This will notify the complainant.</span>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary" id="statusBtn"><i class="bi bi-check2-circle me-1"></i> Update Status</button>
+            <a href="#update-history" class="btn btn-light btn-sm"><i class="bi bi-clock-history me-1"></i> View History</a>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ============ REOPEN SECTION (User only) ============ #}
+    {% if can_reopen %}
+    <div class="card mb-4 border-warning" style="border-left: 4px solid #f59e0b;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-start gap-3">
+          <div class="flex-shrink-0 bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;font-size:1.3rem;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h6 class="fw-bold mb-1">Still not satisfied?</h6>
+            <p class="text-muted small mb-3">If the issue isn't fully resolved, you can reopen this complaint. An officer will review it again and take further action.</p>
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="button" class="btn btn-warning btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#reopenModal">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Reopen Complaint
+              </button>
+              {% if reopen_count > 0 %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle align-self-center">
+                <i class="bi bi-clock-history me-1"></i> Reopened {{ reopen_count }} time{{ '' if reopen_count == 1 else 's' }}
+              </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ============ FEEDBACK SECTION ============ #}
+    {% if current_user.role == 'user' and c.status in ['Resolved', 'Closed'] and not c.feedback %}
+    <div class="card mb-4" id="feedback">
+      <div class="card-body p-4 text-center">
+        <div class="fb-icon-wrap"><i class="bi bi-chat-heart-fill"></i></div>
+        <h6 class="fw-bold mb-1">How did we do?</h6>
+        <p class="text-muted small mb-4">Your feedback helps us improve our service quality.</p>
+
+        <form method="post" action="{{ url_for('submit_feedback', cid=c.id) }}" id="feedbackForm">
+          <div class="fb-rating-area mx-auto" style="max-width: 400px;">
+            <div class="fb-emoji" id="fbEmoji">🌟</div>
+            <div class="fb-stars" id="fbStars">
+              {% for i in range(5, 0, -1) %}
+                <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" required>
+                <label for="star{{ i }}" data-value="{{ i }}"><i class="bi bi-star-fill"></i></label>
+              {% endfor %}
+            </div>
+            <div class="fb-label" id="fbLabel">Tap a star to rate</div>
+          </div>
+
+          <div class="mb-3 text-start mx-auto" style="max-width: 500px;">
+            <label class="form-label small fw-semibold">Share your experience <span class="text-muted fw-normal">(optional)</span></label>
+            <textarea name="comment" id="fbComment" rows="3" class="form-control form-control-sm" maxlength="1000" placeholder="What went well? What could be improved?"></textarea>
+            <div class="d-flex justify-content-between mt-1">
+              <small class="text-muted"><i class="bi bi-info-circle"></i> Your feedback will be visible to the admin team.</small>
+              <small class="text-muted"><span id="fbCommentCount">0</span> / 1000</small>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-warning fw-semibold px-4 rounded-pill" id="fbSubmitBtn"><i class="bi bi-send me-1"></i> Submit Feedback</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if c.feedback %}
+    <div class="card mb-4 border-success" style="border-left: 4px solid #10b981;" id="feedback">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0"><i class="bi bi-chat-heart-fill text-success me-2"></i> Customer Feedback</h6>
+          <span class="badge bg-success">Submitted</span>
+        </div>
+        
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <div class="text-warning fs-4">
+            {% for i in range(1, 6) %}
+              <i class="bi {{ 'bi-star-fill' if i <= c.feedback.rating else 'bi-star' }}"></i>
+            {% endfor %}
+          </div>
+          <span class="fw-bold fs-5 ms-1">{{ c.feedback.rating }}.0</span>
+          <span class="badge bg-warning text-dark ms-2">
+            {% if c.feedback.rating == 5 %}Excellent{% elif c.feedback.rating == 4 %}Good{% elif c.feedback.rating == 3 %}Average{% elif c.feedback.rating == 2 %}Poor{% else %}Very Poor{% endif %}
+          </span>
+        </div>
+        
+        {% if c.feedback.comment %}
+        <div class="p-3 bg-light rounded-3 mb-3 border-start border-3 border-warning">
+          <p class="mb-0 text-dark fst-italic">"{{ c.feedback.comment }}"</p>
+        </div>
+        {% endif %}
+        <small class="text-muted">
+          <i class="bi bi-person me-1"></i>{{ c.feedback.user.name if c.feedback.user else 'User' }} | 
+          <i class="bi bi-calendar me-1"></i><span class="local-time" data-time="{{ c.feedback.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ c.feedback.created_at.strftime('%d %b %Y') }}</span>
+        </small>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ============ UPDATE HISTORY — Rich Timeline ============ #}
+    <div class="card mb-4" id="update-history">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+            <i class="bi bi-clock-history fs-5"></i>
+          </div>
+          <h6 class="fw-bold mb-0">Activity Timeline</h6>
+        </div>
+      </div>
+      <div class="card-body p-4">
+        {% if c.updates %}
+        <ul class="uh-timeline">
+          {% for u in c.updates|reverse %}
+            {% set u_status = u.status or 'Pending' %}
+            {% set u_badge = {'Pending':'secondary', 'In Review':'info', 'Assigned':'primary','In Progress':'warning', 'Resolved':'success', 'Closed':'dark','Rejected':'danger', 'Reopened':'warning', 'Escalated':'danger', 'SLA Extended':'info'}.get(u_status, 'secondary') %}
+            {% set u_icon = {'Pending':'bi-hourglass-split', 'In Review':'bi-search', 'Assigned':'bi-person-check','In Progress':'bi-tools', 'Resolved':'bi-check-circle-fill', 'Closed':'bi-lock-fill','Rejected':'bi-x-octagon-fill', 'Reopened':'bi-arrow-counterclockwise', 'Escalated':'bi-arrow-up-circle-fill', 'SLA Extended':'bi-stopwatch'}.get(u_status, 'bi-circle-fill') %}
+
+            <li class="uh-item {{ 'uh-current' if loop.first }}">
+              <div class="uh-dot bg-{{ u_badge }}"><i class="bi {{ u_icon }}"></i></div>
+              <div class="uh-body">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                  <span class="badge bg-{{ u_badge }} px-3 py-1">{{ u_status }}</span>
+                  {% if loop.first %}<span class="badge bg-dark text-white px-2 py-1" style="font-size:.6rem;">LATEST</span>{% endif %}
+                  <span class="ms-auto text-muted small">
+                    <i class="bi bi-clock me-1"></i>
+                    <span class="local-time" data-time="{{ u.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ u.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+                  </span>
+                </div>
+                
+                {% if u.message %}<div class="uh-message">{{ u.message }}</div>{% endif %}
+                
+                <div class="uh-meta mt-3 pt-3 border-top">
+                  {% if u.author %}
+                    <span class="uh-author">
+                      <span class="uh-avatar">{{ u.author.initials }}</span>
+                      <span class="fw-semibold text-dark">{{ u.author.name }}</span>
+                      <span class="badge bg-light text-secondary border ms-1">{{ u.author.role|upper }}</span>
+                    </span>
+                  {% else %}
+                    <span class="text-muted"><i class="bi bi-robot me-1"></i> System Action</span>
+                  {% endif %}
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="bi bi-inbox fs-2 text-muted d-block mb-2"></i>
+          <p class="text-muted mb-0">No activity updates yet.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  {# ============ RIGHT SIDEBAR ============ #}
+  <div class="col-lg-4">
+    {# --- Case Info --- #}
+    <div class="dt-side-card">
+      <h6><i class="bi bi-info-circle-fill text-primary"></i> Case Information</h6>
+      <div class="dt-info-row"><span class="lbl">Tracking ID</span><span class="val font-monospace text-primary">{{ c.tracking_id }}</span></div>
+      <div class="dt-info-row"><span class="lbl">Submitted</span><span class="val local-time" data-time="{{ c.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ c.created_at.strftime('%d %b %Y') }}</span></div>
+      <div class="dt-info-row"><span class="lbl">Complainant</span><span class="val">{{ c.user.name if c.user else '—' }}</span></div>
+      <div class="dt-info-row">
+        <span class="lbl">Assigned Officer</span>
+        <span class="val">
+          {% if c.officer %}<span class="text-success"><i class="bi bi-person-check-fill me-1"></i>{{ c.officer.name }}</span>
+          {% else %}<span class="text-muted fst-italic">Unassigned</span>{% endif %}
+        </span>
+      </div>
+      {% if c.duplicate_of and c.duplicate_master %}
+      <div class="dt-info-row">
+        <span class="lbl">Duplicate Of</span>
+        <span class="val"><a href="{{ url_for('complaint_detail', cid=c.duplicate_master.id) }}" class="text-warning text-decoration-none"><i class="bi bi-files me-1"></i>{{ c.duplicate_master.tracking_id }}</a></span>
+      </div>
+      {% endif %}
+    </div>
+
+    {# --- SLA / Time Info --- #}
+    <div class="dt-side-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0"><i class="bi bi-stopwatch-fill text-danger"></i> SLA Status</h6>
+        {% if current_user.role in ['admin', 'officer'] and c.status not in ['Resolved', 'Closed', 'Rejected'] %}
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#extendSlaModal" style="font-size: .75rem; padding: 2px 10px;">
+          <i class="bi bi-plus-circle me-1"></i> Extend
+        </button>
+        {% endif %}
+      </div>
+      <div class="dt-info-row">
+        <span class="lbl">Deadline</span>
+        <span class="val text-danger local-time" data-time="{{ c.sla_deadline.strftime('%Y-%m-%dT%H:%M:%SZ') if c.sla_deadline else '' }}">
+          {{ c.sla_deadline.strftime('%d %b %Y, %I:%M %p') if c.sla_deadline else '—' }}
+        </span>
+      </div>
+      <div class="dt-info-row">
+        <span class="lbl">{{ 'Time Taken' if c.status in ['Resolved', 'Closed', 'Rejected'] else 'Time Left' }}</span>
+        <span class="val text-{{ sla.color }} {{ 'real-time-sla' if sla.status not in ['completed_on_time', 'completed_late', 'completed'] else '' }}" 
+              data-deadline="{{ c.sla_deadline.strftime('%Y-%m-%dT%H:%M:%SZ') if c.sla_deadline else '' }}"
+              data-status="{{ c.status }}"
+              data-resolved-at="{{ c.resolved_at.strftime('%Y-%m-%dT%H:%M:%SZ') if c.resolved_at else '' }}">
+          <span class="sla-text">{{ sla.label }}</span>
+        </span>
+      </div>
+    </div>
+
+    {# --- Quick Actions --- #}
+    <div class="dt-side-card bg-light">
+      <h6><i class="bi bi-lightning-charge-fill text-warning"></i> Quick Actions</h6>
+      <div class="d-grid gap-2">
+        <a href="{{ url_for('complaints_list') }}" class="btn btn-outline-primary fw-semibold"><i class="bi bi-arrow-left me-1"></i> Back to List</a>
+        <a href="{{ url_for('track') }}" class="btn btn-outline-secondary fw-semibold"><i class="bi bi-search me-1"></i> Track Publicly</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ============ EXTEND SLA MODAL (Admin & Officer) ============ #}
+{% if current_user.role in ['admin', 'officer'] and c.status not in ['Resolved', 'Closed', 'Rejected'] %}
+<div class="modal fade" id="extendSlaModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('extend_sla', cid=c.id) }}" id="extendSlaForm">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-stopwatch me-2"></i> Extend SLA Deadline</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-4">Set a new deadline starting from the current time. (e.g., If you enter 2 hours, the deadline will be exactly 2 hours from now).</p>
+          
+          <div class="row g-2 text-center">
+            <div class="col-3">
+              <label class="form-label small fw-semibold mb-1">Days</label>
+              <input type="number" name="days" class="form-control text-center" min="0" value="0">
+            </div>
+            <div class="col-3">
+              <label class="form-label small fw-semibold mb-1">Hours</label>
+              <input type="number" name="hours" class="form-control text-center" min="0" max="23" value="0">
+            </div>
+            <div class="col-3">
+              <label class="form-label small fw-semibold mb-1">Mins</label>
+              <input type="number" name="minutes" class="form-control text-center" min="0" max="59" value="0">
+            </div>
+            <div class="col-3">
+              <label class="form-label small fw-semibold mb-1">Secs</label>
+              <input type="number" name="seconds" class="form-control text-center" min="0" max="59" value="0">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-semibold"><i class="bi bi-check2-circle me-1"></i> Set Deadline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ============ REOPEN MODAL ============ #}
+{% if can_reopen %}
+<div class="modal fade" id="reopenModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('reopen_complaint', cid=c.id) }}" id="reopenForm">
+        <div class="modal-header" style="background: linear-gradient(135deg, #fef3c7, #fde68a);">
+          <h5 class="modal-title fw-bold"><i class="bi bi-arrow-counterclockwise text-warning me-1"></i> Reopen Complaint</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-warning small mb-3 py-2">
+            <i class="bi bi-info-circle me-1"></i> You're reopening <code class="text-dark">{{ c.tracking_id }}</code>.
+            {% if c.feedback %}<br><strong>⚠️ Your previous feedback will be removed.</strong>{% endif %}
+          </div>
+          <label class="form-label small fw-semibold">Why is this being reopened? <span class="text-danger">*</span></label>
+          <textarea name="reason" id="reopenReason" class="form-control" rows="4" required minlength="10" maxlength="500" placeholder="Explain what's still not resolved..."></textarea>
+          <div class="d-flex justify-content-between mt-1">
+            <small class="text-muted"><i class="bi bi-info-circle"></i> At least 10 characters</small>
+            <small class="text-muted"><span id="reopenReasonCount">0</span> / 500</small>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning fw-semibold" id="reopenSubmitBtn"><i class="bi bi-check2-circle me-1"></i> Reopen Complaint</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ================= IMAGE PREVIEW MODALS ================= #}
+{% for att in c.attachments %}
+  {% if att.is_image %}
+  <div class="modal fade" id="imgModal{{ att.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content shadow-lg">
+        <div class="modal-header bg-dark text-white border-0">
+          <h6 class="modal-title fw-semibold"><i class="bi bi-image me-2"></i>{{ att.original_name }}</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-dark text-center p-0">
+          <img src="{{ url_for('uploaded_file', filename=att.filename) }}" class="img-fluid" style="max-height: 80vh; object-fit: contain;" alt="{{ att.original_name }}">
+        </div>
+        <div class="modal-footer bg-dark border-0 justify-content-center">
+          <a href="{{ url_for('uploaded_file', filename=att.filename) }}" download="{{ att.original_name }}" class="btn btn-primary px-4 rounded-pill"><i class="bi bi-download me-1"></i> Download Image</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+     TIMEZONE FIX & REAL-TIME SLA COUNTDOWN
+     ========================================================= */
+  
+  document.querySelectorAll('.local-time').forEach(function(el) {
+    const timeStr = el.dataset.time;
+    if (!timeStr) return;
+    
+    const utcDate = new Date(timeStr);
+    if (isNaN(utcDate.getTime())) return;
+
+    const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+    el.textContent = utcDate.toLocaleString('en-US', options);
+  });
+
+  const slaElements = document.querySelectorAll('.real-time-sla');
+  
+  function updateCountdowns() {
+    const now = new Date().getTime();
+
+    slaElements.forEach(function(el) {
+      const status = el.dataset.status;
+      const deadlineStr = el.dataset.deadline;
+      const resolvedStr = el.dataset.resolvedAt;
+      const textEl = el.querySelector('.sla-text');
+      
+      if (!textEl) return;
+
+      // ✅ যদি কমপ্লেইন Resolved বা Closed হয়ে যায়, তবে টাইমার থেমে যাবে
+      if (['Resolved', 'Closed', 'Rejected'].includes(status) && resolvedStr) {
+        const deadline = new Date(deadlineStr).getTime();
+        const resolved = new Date(resolvedStr).getTime();
+        
+        if (isNaN(deadline) || isNaN(resolved)) return;
+        
+        const diff = deadline - resolved; // Resolved এবং Deadline এর পার্থক্য
+        const absDiff = Math.abs(diff);
+        
+        const days = Math.floor(absDiff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((absDiff % (1000 * 60)) / 1000);
+
+        let timeStr = '';
+        if (days > 0) timeStr += `${days}d `;
+        timeStr += `${hours}h ${minutes}m ${seconds}s`;
+
+        // রিজলভ হয়েছে কত আগে বা পরে, তা দেখাবে
+        if (diff >= 0) {
+          textEl.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Resolved ${timeStr} early`;
+          el.classList.remove('bg-warning', 'bg-danger');
+          el.classList.add('bg-success');
+        } else {
+          textEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> Resolved ${timeStr} late`;
+          el.classList.remove('bg-success', 'bg-warning');
+          el.classList.add('bg-danger');
+        }
+        return; // এখানেই থেমে যাবে, নিচের লাইভ টাইমার রান করবে না
+      }
+
+      // ⬇️ সাধারণ লাইভ টাইমার (যখন কমপ্লেইন এখনো রিজলভ হয়নি)
+      if (!deadlineStr) return;
+
+      const deadline = new Date(deadlineStr).getTime();
+      if (isNaN(deadline)) return;
+      
+      const diff = deadline - now;
+
+      if (diff > 0) {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        let timeStr = '';
+        if (days > 0) timeStr += `${days}d `;
+        if (hours > 0 || days > 0) timeStr += `${hours}h `;
+        timeStr += `${minutes}m ${seconds}s left`;
+
+        textEl.innerHTML = `<i class="bi bi-stopwatch me-1"></i> ${timeStr}`;
+        
+        if (diff < 24 * 60 * 60 * 1000) {
+           el.classList.remove('bg-success', 'bg-danger'); 
+           el.classList.add('bg-warning', 'text-dark');
+        }
+
+      } else {
+        const overdueDiff = Math.abs(diff);
+        const days = Math.floor(overdueDiff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((overdueDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((overdueDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((overdueDiff % (1000 * 60)) / 1000);
+
+        let timeStr = '';
+        if (days > 0) timeStr += `${days}d `;
+        timeStr += `${hours}h ${minutes}m ${seconds}s`;
+
+        textEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> Overdue ${timeStr}`;
+        
+        el.classList.remove('bg-success', 'bg-warning');
+        el.classList.add('bg-danger', 'text-white');
+      }
+    });
+  }
+
+  if (slaElements.length > 0) {
+    updateCountdowns();
+    setInterval(updateCountdowns, 1000);
+  }
+
+
+  /* =========================================================
+     EXISTING SCRIPT LOGIC
+     ========================================================= */
+  const offSearch = document.getElementById('offSearch');
+  if (offSearch) {
+    const cards = document.querySelectorAll('.off-card');
+    offSearch.addEventListener('input', function () {
+      const term = this.value.trim().toLowerCase();
+      cards.forEach(function (card) {
+        const name = card.dataset.name || '';
+        const dept = card.dataset.dept || '';
+        const match = !term || name.includes(term) || dept.includes(term);
+        card.style.display = match ? '' : 'none';
+      });
+    });
+  }
+
+  const assignForm = document.getElementById('assignOfficerForm');
+  if (assignForm) {
+    assignForm.addEventListener('submit', function (e) {
+      const selected = assignForm.querySelector('input[name="officer_id"]:checked');
+      if (!selected) {
+        e.preventDefault();
+        alert('Please select an officer first.');
+        return;
+      }
+      const btn = document.getElementById('assignBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Assigning...';
+      }
+    });
+  }
+
+  const form = document.getElementById('statusForm');
+  if (form) {
+    const statusCards = form.querySelectorAll('.su-opt:not(.is-current)');
+    const messageInput = document.getElementById('statusMessage');
+    const remarkCount = document.getElementById('remarkCount');
+    const remarkRequired = document.getElementById('remarkRequired');
+    const preview = document.getElementById('suPreview');
+    const previewNewBadge = document.getElementById('previewNewBadge');
+    const previewNote = document.getElementById('previewNote');
+    const submitBtn = document.getElementById('statusBtn');
+
+    const FINAL_STATES = ['Resolved', 'Closed', 'Rejected'];
+
+    function updatePreview() {
+      const selected = form.querySelector('input[name="status"]:checked');
+      if (!selected) {
+        preview.style.display = 'none';
+        remarkRequired.style.display = 'none';
+        return;
+      }
+      const val = selected.value;
+      const badgeColor = {'Pending': 'secondary','In Review': 'info','Assigned': 'primary','In Progress': 'warning','Resolved': 'success','Closed': 'dark','Rejected': 'danger'}[val] || 'secondary';
+
+      previewNewBadge.className = 'badge bg-' + badgeColor;
+      previewNewBadge.textContent = val;
+      preview.style.display = 'block';
+
+      if (FINAL_STATES.includes(val)) {
+        remarkRequired.style.display = 'inline';
+        previewNote.textContent = '⚠️ Remarks required — user will see this message.';
+        previewNote.style.color = '#dc2626';
+      } else {
+        remarkRequired.style.display = 'none';
+        previewNote.textContent = 'The complainant will be notified.';
+        previewNote.style.color = '#6b7280';
+      }
+    }
+
+    statusCards.forEach(function (card) {
+      const input = card.querySelector('input');
+      if (!input) return;
+      card.addEventListener('click', function () {
+        form.querySelectorAll('input[name="status"]').forEach(function (r) {
+          if (r !== input) r.checked = false;
+        });
+        input.checked = true;
+        updatePreview();
+      });
+    });
+
+    if (messageInput && remarkCount) {
+      messageInput.addEventListener('input', function () {
+        remarkCount.textContent = this.value.length;
+      });
+    }
+
+    form.addEventListener('submit', function (e) {
+      const selected = form.querySelector('input[name="status"]:checked');
+      if (!selected) {
+        e.preventDefault();
+        alert('Please select a new status first.');
+        return;
+      }
+      const val = selected.value;
+      const msg = messageInput.value.trim();
+      if (FINAL_STATES.includes(val) && !msg) {
+        e.preventDefault();
+        alert('Please add remarks — required when marking as ' + val + '.');
+        messageInput.focus();
+        return;
+      }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+      }
+    });
+  }
+
+  const fbForm = document.getElementById('feedbackForm');
+  if (fbForm) {
+    const fbStars = document.getElementById('fbStars');
+    const fbEmoji = document.getElementById('fbEmoji');
+    const fbLabel = document.getElementById('fbLabel');
+    const fbComment = document.getElementById('fbComment');
+    const fbCommentCount = document.getElementById('fbCommentCount');
+    const fbSubmitBtn = document.getElementById('fbSubmitBtn');
+
+    const EMOJI = {1:'😠', 2:'😞', 3:'😐', 4:'😊', 5:'🤩'};
+    const LABEL = {1:'Very Poor', 2:'Poor', 3:'Average', 4:'Good', 5:'Excellent'};
+    const DEFAULT_EMOJI = '🌟';
+    const DEFAULT_LABEL = 'Tap a star to rate';
+
+    function setPreview(value) {
+      if (!value) {
+        fbEmoji.textContent = DEFAULT_EMOJI;
+        fbLabel.textContent = DEFAULT_LABEL;
+        fbLabel.classList.remove('has-value');
+        return;
+      }
+      fbEmoji.textContent = EMOJI[value] || DEFAULT_EMOJI;
+      fbLabel.textContent = LABEL[value] || DEFAULT_LABEL;
+      fbLabel.classList.add('has-value');
+    }
+
+    fbStars.querySelectorAll('label').forEach(function (label) {
+      label.addEventListener('mouseenter', function () {
+        setPreview(parseInt(this.dataset.value, 10));
+      });
+    });
+    fbStars.addEventListener('mouseleave', function () {
+      const checked = fbStars.querySelector('input:checked');
+      setPreview(checked ? parseInt(checked.value, 10) : null);
+    });
+    fbStars.querySelectorAll('input').forEach(function (input) {
+      input.addEventListener('change', function () {
+        setPreview(parseInt(this.value, 10));
+      });
+    });
+
+    if (fbComment && fbCommentCount) {
+      fbComment.addEventListener('input', function () {
+        fbCommentCount.textContent = this.value.length;
+        fbCommentCount.style.color = this.value.length > 950 ? '#dc2626' : '#6b7280';
+      });
+    }
+
+    fbForm.addEventListener('submit', function (e) {
+      const selected = fbStars.querySelector('input:checked');
+      if (!selected) {
+        e.preventDefault();
+        fbLabel.textContent = '⚠️ Please select a rating first';
+        fbLabel.style.color = '#dc2626';
+        fbStars.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (fbSubmitBtn) {
+        fbSubmitBtn.disabled = true;
+        fbSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+      }
+    });
+  }
+
+  const reopenForm = document.getElementById('reopenForm');
+  const reopenReason = document.getElementById('reopenReason');
+  const reopenReasonCount = document.getElementById('reopenReasonCount');
+  const reopenSubmitBtn = document.getElementById('reopenSubmitBtn');
+
+  if (reopenReason && reopenReasonCount) {
+    reopenReason.addEventListener('input', function () {
+      reopenReasonCount.textContent = this.value.length;
+    });
+  }
+
+  if (reopenForm) {
+    reopenForm.addEventListener('submit', function (e) {
+      const reason = reopenReason.value.trim();
+      if (reason.length < 10) {
+        e.preventDefault();
+        alert('Please provide a reason with at least 10 characters.');
+        reopenReason.focus();
+        return;
+      }
+      if (reopenSubmitBtn) {
+        reopenSubmitBtn.disabled = true;
+        reopenSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Reopening...';
+      }
+    });
+  }
+
+  const reopenModal = document.getElementById('reopenModal');
+  if (reopenModal) {
+    reopenModal.addEventListener('shown.bs.modal', function () {
+      if (reopenReason) reopenReason.focus();
+    });
+  }
+})();
+</script>
+{% endblock %}

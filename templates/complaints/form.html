@@ -1,0 +1,676 @@
+{% extends "base.html" %}
+{% block title %}{{ t('new_complaint') }}{% endblock %}
+{% block page_title %}{{ t('submit_complaint') }}{% endblock %}
+
+{% block content %}
+{% set fd = {
+  'title':       pending_data.title       if pending_data else request.form.get('title',''),
+  'description': pending_data.description if pending_data else request.form.get('description',''),
+  'category_id': (pending_data.category_id if pending_data else request.form.get('category_id',''))|string,
+  'priority':    pending_data.priority    if pending_data else (request.form.get('priority') or 'Medium'),
+  'location':    pending_data.location    if pending_data else request.form.get('location','')
+} %}
+
+{% set status_map = {
+  'Pending': 'secondary', 'In Review': 'info', 'Assigned': 'primary',
+  'In Progress': 'warning', 'Resolved': 'success', 'Closed': 'dark',
+  'Rejected': 'danger', 'Escalated': 'danger'
+} %}
+
+<style>
+  /* === Complaint Form — Professional Styles === */
+  .cf-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 16px;
+    color: #fff;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cf-hero::after {
+    content: ""; position: absolute; right: -40px; top: -40px;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,.08); border-radius: 50%;
+  }
+  .cf-hero::before {
+    content: ""; position: absolute; right: 60px; bottom: -60px;
+    width: 150px; height: 150px;
+    background: rgba(255,255,255,.06); border-radius: 50%;
+  }
+  .cf-hero h4 { font-weight: 700; margin: 0 0 6px; }
+  .cf-hero p  { opacity: .85; margin: 0; font-size: .9rem; }
+
+  .cf-card {
+    background: #fff; border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04);
+    border: 1px solid #eef0f4; overflow: hidden; margin-bottom: 20px;
+  }
+  .cf-card-header {
+    padding: 16px 22px; border-bottom: 1px solid #eef0f4;
+    background: #fafbfd;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .cf-card-header i { color: #4f46e5; font-size: 1.15rem; }
+  .cf-card-header h6 { margin: 0; font-weight: 700; font-size: .95rem; color: #111827; }
+  .cf-card-body { padding: 22px; }
+
+  .cf-label {
+    font-size: .82rem; font-weight: 600; color: #374151;
+    margin-bottom: 6px; display: block;
+  }
+  .cf-required { color: #ef4444; margin-left: 2px; }
+  .cf-help { font-size: .75rem; color: #6b7280; margin-top: 6px; }
+
+  .cf-input, .cf-select, .cf-textarea {
+    border: 1.5px solid #e5e7eb; border-radius: 10px;
+    padding: 10px 14px; font-size: .9rem;
+    transition: all .15s ease; background: #fff;
+  }
+  .cf-input:focus, .cf-select:focus, .cf-textarea:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79,70,229,.1);
+    outline: none;
+  }
+  .cf-textarea { resize: vertical; min-height: 140px; }
+
+  .cf-counter {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px; font-size: .75rem; color: #6b7280;
+  }
+  .cf-counter-progress {
+    height: 3px; background: #f3f4f6; border-radius: 2px;
+    flex: 1; margin: 0 12px; overflow: hidden;
+  }
+  .cf-counter-bar {
+    height: 100%; background: #4f46e5; border-radius: 2px;
+    width: 0%; transition: width .2s ease, background .2s ease;
+  }
+
+  /* Drag & Drop upload */
+  .cf-dropzone {
+    border: 2px dashed #d1d5db; border-radius: 12px;
+    background: #fafbfd; padding: 30px 20px;
+    text-align: center; cursor: pointer;
+    transition: all .2s ease;
+  }
+  .cf-dropzone:hover, .cf-dropzone.drag-over {
+    border-color: #4f46e5; background: #f5f3ff;
+  }
+  .cf-dropzone.drag-over { transform: scale(1.01); }
+  .cf-dropzone-icon {
+    width: 52px; height: 52px;
+    background: #ede9fe; color: #4f46e5;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; margin-bottom: 10px;
+  }
+  .cf-dropzone-title { font-weight: 600; font-size: .9rem; color: #111827; margin-bottom: 4px; }
+  .cf-dropzone-hint { font-size: .78rem; color: #6b7280; }
+  .cf-dropzone-hint strong { color: #4f46e5; }
+
+  .cf-file-list { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .cf-file-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; background: #f9fafb;
+    border: 1px solid #e5e7eb; border-radius: 10px;
+    font-size: .82rem; animation: fadeSlide .2s ease;
+  }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .cf-file-item.is-error { background: #fef2f2; border-color: #fecaca; }
+  .cf-file-thumb {
+    width: 40px; height: 40px;
+    border-radius: 8px; overflow: hidden;
+    background: #ede9fe; color: #4f46e5;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 1.1rem;
+  }
+  .cf-file-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cf-file-item.is-error .cf-file-thumb { background: #fee2e2; color: #dc2626; }
+  .cf-file-meta { flex: 1; min-width: 0; }
+  .cf-file-name {
+    font-weight: 600; color: #111827;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cf-file-size { color: #6b7280; font-size: .74rem; }
+  .cf-file-item.is-error .cf-file-size { color: #dc2626; }
+  .cf-file-remove {
+    background: transparent; border: 0;
+    color: #9ca3af; font-size: 1.1rem; cursor: pointer;
+    padding: 4px 8px; border-radius: 6px; transition: all .15s;
+  }
+  .cf-file-remove:hover { background: #fee2e2; color: #dc2626; }
+
+  /* Priority pills */
+  .cf-priority-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  @media (max-width: 575.98px) {
+    .cf-priority-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .cf-priority-opt { position: relative; }
+  .cf-priority-opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .cf-priority-opt label {
+    display: block; padding: 10px 12px;
+    border: 1.5px solid #e5e7eb; border-radius: 10px;
+    text-align: center; cursor: pointer;
+    font-size: .8rem; font-weight: 600; color: #6b7280;
+    transition: all .15s ease; background: #fff;
+  }
+  .cf-priority-opt label i { display: block; font-size: 1.1rem; margin-bottom: 3px; }
+  .cf-priority-opt input:checked + label { border-color: #4f46e5; background: #eef2ff; color: #4f46e5; }
+  .cf-priority-opt input[value="Low"]:checked    + label { border-color:#6b7280; background:#f3f4f6; color:#4b5563; }
+  .cf-priority-opt input[value="Medium"]:checked + label { border-color:#0ea5e9; background:#e0f2fe; color:#0369a1; }
+  .cf-priority-opt input[value="High"]:checked   + label { border-color:#f59e0b; background:#fef3c7; color:#b45309; }
+  .cf-priority-opt input[value="Urgent"]:checked + label { border-color:#ef4444; background:#fee2e2; color:#b91c1c; }
+
+  /* Sticky action bar */
+  .cf-actions {
+    position: sticky; bottom: 0;
+    background: rgba(255,255,255,.95); backdrop-filter: blur(8px);
+    padding: 16px 20px; border-radius: 14px;
+    box-shadow: 0 -2px 12px rgba(16,24,40,.08);
+    border: 1px solid #eef0f4;
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 8px; z-index: 10;
+  }
+  .cf-actions .cf-secure { font-size: .78rem; color: #6b7280; display: flex; align-items: center; gap: 6px; }
+  .cf-btn-submit {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border: 0; color: #fff; padding: 11px 28px; border-radius: 10px;
+    font-weight: 600; font-size: .9rem; transition: all .15s ease;
+    box-shadow: 0 4px 12px rgba(79,70,229,.3);
+  }
+  .cf-btn-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(79,70,229,.4); }
+  .cf-btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+</style>
+
+<!-- ================= HERO (3-step removed) ================= -->
+<div class="cf-hero">
+  <h4><i class="bi bi-pencil-square me-2"></i>{{ t('submit_complaint') }}</h4>
+  <p>Your voice matters — help us resolve issues faster with complete details.</p>
+</div>
+
+{# Fallback server-side duplicate warning (only shown if JS is disabled) #}
+{% if show_duplicate_warning and duplicates %}
+<div class="cf-card p-4 mb-4 border-start border-4 border-warning">
+  <div class="d-flex align-items-start gap-3 mb-3">
+    <div class="flex-shrink-0" style="width:48px;height:48px;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#d97706;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <div>
+      <h6 class="fw-bold text-warning mb-1">{{ t('duplicate_warning') }}</h6>
+      <p class="small text-muted mb-0">{{ t('duplicate_message') }}</p>
+    </div>
+  </div>
+  <div class="mb-3">
+    {% for dup, score in duplicates %}
+    <div class="d-flex flex-wrap align-items-center gap-2 py-2 border-bottom">
+      <span class="badge bg-warning text-dark" style="min-width:70px;">
+        {{ (score * 100)|int }}% {{ t('similarity') }}
+      </span>
+      <a href="{{ url_for('complaint_detail', cid=dup.id) }}" target="_blank" class="text-decoration-none flex-grow-1">
+        <code class="text-primary">{{ dup.tracking_id }}</code>
+        <span class="ms-2 text-dark">{{ dup.title|truncate(55) }}</span>
+      </a>
+      <span class="badge bg-{{ status_map.get(dup.status, 'secondary') }}">{{ dup.status }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <form method="post" enctype="multipart/form-data" class="d-inline">
+      <input type="hidden" name="title"       value="{{ fd.title }}">
+      <input type="hidden" name="description" value="{{ fd.description }}">
+      <input type="hidden" name="category_id" value="{{ fd.category_id }}">
+      <input type="hidden" name="priority"    value="{{ fd.priority }}">
+      <input type="hidden" name="location"    value="{{ fd.location }}">
+      <input type="hidden" name="force_submit" value="1">
+      <button type="submit" class="btn btn-warning fw-semibold">
+        <i class="bi bi-check2-circle me-1"></i> {{ t('submit_anyway') }}
+      </button>
+    </form>
+    <a href="{{ url_for('complaints_list') }}" class="btn btn-light">
+      <i class="bi bi-x-lg me-1"></i> {{ t('cancel') }}
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{# ============ MAIN FORM ============ #}
+<form method="post" enctype="multipart/form-data" novalidate id="complaintForm">
+  <input type="hidden" name="force_submit" id="forceSubmit" value="0">
+
+  <div class="row g-4">
+    <!-- ================= MAIN COLUMN ================= -->
+    <div class="col-lg-12">
+
+      <!-- CARD 1: Complaint Information -->
+      <div class="cf-card">
+        <div class="cf-card-header">
+          <i class="bi bi-info-circle-fill"></i>
+          <h6>Complaint Information</h6>
+        </div>
+        <div class="cf-card-body">
+
+          <div class="mb-4">
+            <label class="cf-label" for="title">
+              {{ t('title') }} <span class="cf-required">*</span>
+            </label>
+            <input type="text" id="title" name="title"
+                   class="form-control cf-input" required minlength="5" maxlength="200"
+                   value="{{ fd.title }}"
+                   placeholder="e.g. Drain blocked on Main Road causing waterlogging">
+            <div class="cf-help">
+              <i class="bi bi-lightbulb"></i>
+              A clear, specific title helps officers understand the issue quickly.
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-7">
+              <label class="cf-label" for="category_id">
+                {{ t('category') }} <span class="cf-required">*</span>
+              </label>
+              <select id="category_id" name="category_id" class="form-select cf-select" required>
+                <option value="">— Select Category —</option>
+                {% for cat in categories %}
+                  <option value="{{ cat.id }}" {{ 'selected' if fd.category_id == cat.id|string }}>
+                    {{ cat.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="cf-label" for="location">{{ t('location') }}</label>
+              <input type="text" id="location" name="location"
+                     class="form-control cf-input" maxlength="200"
+                     value="{{ fd.location }}"
+                     placeholder="Area, street or landmark">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="cf-label">
+              {{ t('priority') }} <span class="cf-required">*</span>
+            </label>
+            <div class="cf-priority-grid">
+              {% set icons = {
+                'Low':'bi-arrow-down-circle','Medium':'bi-dash-circle',
+                'High':'bi-exclamation-circle','Urgent':'bi-exclamation-triangle'
+              } %}
+              {% for p in PRIORITIES %}
+                <div class="cf-priority-opt">
+                  <input type="radio" id="prio-{{ p }}" name="priority" value="{{ p }}"
+                         {{ 'checked' if fd.priority == p }} required>
+                  <label for="prio-{{ p }}">
+                    <i class="bi {{ icons.get(p, 'bi-dash-circle') }}"></i>
+                    {{ p }}
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+            <div class="cf-help">
+              <i class="bi bi-info-circle"></i>
+              Choose <strong>Urgent</strong> only for safety hazards or emergencies.
+            </div>
+          </div>
+
+          <div>
+            <label class="cf-label" for="description">
+              {{ t('description') }} <span class="cf-required">*</span>
+            </label>
+            <textarea id="description" name="description"
+                      class="form-control cf-textarea" required minlength="20" maxlength="2000"
+                      placeholder="Describe what happened, when it started, how it affects you or others, and what you expect...">{{ fd.description }}</textarea>
+            <div class="cf-counter">
+              <span><i class="bi bi-info-circle"></i> Be specific — it speeds up resolution</span>
+              <div class="cf-counter-progress"><div class="cf-counter-bar" id="charBar"></div></div>
+              <span id="charCount">0 / 2000</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CARD 2: Attachments -->
+      <div class="cf-card">
+        <div class="cf-card-header">
+          <i class="bi bi-paperclip"></i>
+          <h6>{{ t('attachments') }} <span class="text-muted fw-normal ms-1">(optional)</span></h6>
+        </div>
+        <div class="cf-card-body">
+          <div class="cf-dropzone" id="dropzone">
+            <div class="cf-dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+            <div class="cf-dropzone-title">Drag &amp; drop files here, or <strong>click to browse</strong></div>
+            <div class="cf-dropzone-hint">
+              PNG, JPG, JPEG, GIF, WEBP, PDF, DOCX, TXT · Max <strong>5 MB</strong> per file
+            </div>
+            <input type="file" id="attachments" name="attachments" multiple hidden
+                   accept=".png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.pdf,.doc,.docx,.txt">
+          </div>
+          <div class="cf-file-list" id="fileList"></div>
+          <div class="cf-help mt-3">
+            <i class="bi bi-shield-check text-success"></i>
+            Files are stored securely with randomized names.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= STICKY ACTIONS ================= -->
+  <div class="cf-actions">
+    <button type="submit" class="cf-btn-submit" id="submitBtn">
+      <i class="bi bi-send-fill me-1"></i> {{ t('submit') }}
+    </button>
+    <a href="{{ url_for('user_dashboard') }}" class="btn btn-light px-4">
+      <i class="bi bi-x-lg me-1"></i> {{ t('cancel') }}
+    </a>
+    <span class="cf-secure ms-auto d-none d-sm-flex">
+      <i class="bi bi-shield-check text-success"></i>
+      Secured &amp; reviewed within 24h
+    </span>
+  </div>
+</form>
+
+<!-- ================= DUPLICATE MODAL ================= -->
+<div class="modal fade" id="dupModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning-subtle">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle me-2 text-warning"></i>Similar Complaints Found
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">
+          These existing complaints look similar to yours. Please check if one already covers your issue before proceeding.
+        </p>
+        <div id="dupList"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-pencil me-1"></i> Let me edit
+        </button>
+        <button type="button" class="btn btn-warning fw-semibold" id="submitAnywayBtn">
+          <i class="bi bi-check2-circle me-1"></i> Submit Anyway
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Status → Bootstrap color mapping (for JS) ---------- */
+  const STATUS_MAP = {
+    'Pending': 'secondary', 'In Review': 'info', 'Assigned': 'primary',
+    'In Progress': 'warning', 'Resolved': 'success', 'Closed': 'dark',
+    'Rejected': 'danger', 'Escalated': 'danger'
+  };
+
+  /* ---------- Character counter ---------- */
+  const desc     = document.getElementById('description');
+  const counter  = document.getElementById('charCount');
+  const bar      = document.getElementById('charBar');
+  const MAX_CHAR = 2000;
+
+  function updateCount() {
+    const len = desc.value.length;
+    counter.textContent = len + ' / ' + MAX_CHAR;
+    const pct = Math.min((len / MAX_CHAR) * 100, 100);
+    bar.style.width = pct + '%';
+    bar.style.background = len > MAX_CHAR ? '#ef4444'
+                        : len > MAX_CHAR * 0.9 ? '#f59e0b'
+                        : '#4f46e5';
+    counter.classList.toggle('text-danger', len > MAX_CHAR);
+  }
+  desc.addEventListener('input', updateCount);
+  updateCount();
+
+  /* ---------- Drag & drop upload ---------- */
+  const dropzone  = document.getElementById('dropzone');
+  const fileInput = document.getElementById('attachments');
+  const fileList  = document.getElementById('fileList');
+  const MAX_SIZE  = 5 * 1024 * 1024;
+
+  const IMG_EXTS = ['png','jpg','jpeg','gif','webp','bmp','svg'];
+  const ICONS = {
+    'pdf':'bi-file-earmark-pdf',
+    'doc':'bi-file-earmark-word', 'docx':'bi-file-earmark-word',
+    'txt':'bi-file-earmark-text'
+  };
+
+  let dt = new DataTransfer();
+
+  function humanSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+  function extOf(name) {
+    return (name.split('.').pop() || '').toLowerCase();
+  }
+
+  function render() {
+    fileList.innerHTML = '';
+    Array.from(dt.files).forEach(function (file, idx) {
+      const ext   = extOf(file.name);
+      const isImg = IMG_EXTS.indexOf(ext) !== -1;
+      const icon  = ICONS[ext] || 'bi-file-earmark';
+      const error = file.size > MAX_SIZE;
+
+      const row = document.createElement('div');
+      row.className = 'cf-file-item' + (error ? ' is-error' : '');
+
+      const thumb = document.createElement('div');
+      thumb.className = 'cf-file-thumb';
+
+      if (isImg) {
+        const img = document.createElement('img');
+        img.alt = file.name;
+        const reader = new FileReader();
+        reader.onload = function (ev) { img.src = ev.target.result; };
+        reader.readAsDataURL(file);
+        thumb.appendChild(img);
+      } else {
+        thumb.innerHTML = '<i class="bi ' + icon + '"></i>';
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'cf-file-meta';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'cf-file-name';
+      nameEl.textContent = file.name;
+
+      const sizeEl = document.createElement('div');
+      sizeEl.className = 'cf-file-size';
+      sizeEl.textContent = humanSize(file.size) + (error ? ' · exceeds 5 MB limit' : '');
+
+      meta.appendChild(nameEl);
+      meta.appendChild(sizeEl);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'cf-file-remove';
+      removeBtn.dataset.index = idx;
+      removeBtn.title = 'Remove';
+      removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+
+      row.appendChild(thumb);
+      row.appendChild(meta);
+      row.appendChild(removeBtn);
+      fileList.appendChild(row);
+    });
+
+    try { fileInput.files = dt.files; } catch (e) {}
+  }
+
+  function addFiles(files) {
+    Array.from(files).forEach(function (file) {
+      const exists = Array.from(dt.files).some(function (f) {
+        return f.name === file.name && f.size === file.size;
+      });
+      if (!exists) {
+        try { dt.items.add(file); } catch (e) {}
+      }
+    });
+    render();
+  }
+
+  dropzone.addEventListener('click', function () { fileInput.click(); });
+
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add('drag-over');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove('drag-over');
+    });
+  });
+  dropzone.addEventListener('drop', function (e) {
+    if (e.dataTransfer && e.dataTransfer.files.length) {
+      addFiles(e.dataTransfer.files);
+    }
+  });
+  fileInput.addEventListener('change', function () {
+    addFiles(fileInput.files);
+  });
+
+  fileList.addEventListener('click', function (e) {
+    const btn = e.target.closest('.cf-file-remove');
+    if (!btn) return;
+    const removeIdx = parseInt(btn.dataset.index, 10);
+    const next = new DataTransfer();
+    Array.from(dt.files).forEach(function (f, idx) {
+      if (idx !== removeIdx) next.items.add(f);
+    });
+    dt = next;
+    render();
+  });
+
+  /* ---------- Submit + AJAX duplicate check ---------- */
+  const form        = document.getElementById('complaintForm');
+  const submitBtn   = document.getElementById('submitBtn');
+  const forceSubmit = document.getElementById('forceSubmit');
+  const dupModalEl  = document.getElementById('dupModal');
+  const submitAnywayBtn = document.getElementById('submitAnywayBtn');
+
+  function startSpinner(text) {
+    submitBtn.dataset.original = submitBtn.dataset.original || submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> ' + text;
+  }
+  function stopSpinner() {
+    submitBtn.disabled = false;
+    if (submitBtn.dataset.original) submitBtn.innerHTML = submitBtn.dataset.original;
+  }
+
+  form.addEventListener('submit', async function (e) {
+    /* Already approved — let the browser submit normally */
+    if (forceSubmit.value === '1') {
+      startSpinner('Submitting...');
+      return;
+    }
+
+    /* HTML5 validation */
+    if (!form.checkValidity()) {
+      e.preventDefault();
+      form.reportValidity();
+      return;
+    }
+
+    /* 5 MB guard */
+    const tooBig = Array.from(dt.files).some(function (f) { return f.size > MAX_SIZE; });
+    if (tooBig) {
+      e.preventDefault();
+      alert('One or more files exceed the 5 MB limit. Please remove them first.');
+      return;
+    }
+
+    /* AJAX duplicate check (GET, matches backend) */
+    e.preventDefault();
+    startSpinner('Checking...');
+
+    try {
+      const params = new URLSearchParams({
+        title:       form.title.value,
+        description: form.description.value,
+        category_id: form.category_id.value
+      });
+      const res = await fetch('{{ url_for("check_duplicates_api") }}?' + params.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res.ok) throw new Error('check failed');
+      const data = await res.json();
+
+      if (data.count > 0) {
+        showDuplicates(data.duplicates);
+        stopSpinner();
+      } else {
+        forceSubmit.value = '1';
+        form.requestSubmit();
+      }
+    } catch (err) {
+      /* Network/AJAX failed — let the server handle duplicates */
+      forceSubmit.value = '0';
+      form.requestSubmit();
+    }
+  });
+
+  function showDuplicates(list) {
+    const container = document.getElementById('dupList');
+    container.innerHTML = '';
+    list.forEach(function (d) {
+      const row = document.createElement('div');
+      row.className = 'd-flex flex-wrap align-items-center gap-2 py-2 border-bottom';
+
+      const badge = document.createElement('span');
+      badge.className = 'badge bg-warning text-dark';
+      badge.style.minWidth = '70px';
+      badge.textContent = (d.similarity || 0) + '% match';
+
+      const link = document.createElement('a');
+      link.href = d.url;
+      link.target = '_blank';
+      link.className = 'text-decoration-none flex-grow-1';
+      link.innerHTML = '<code class="text-primary">' + d.tracking_id + '</code>' +
+                       ' <span class="ms-2 text-dark">' + d.title + '</span>';
+
+      const st = document.createElement('span');
+      st.className = 'badge bg-' + (STATUS_MAP[d.status] || 'secondary');
+      st.textContent = d.status;
+
+      row.appendChild(badge);
+      row.appendChild(link);
+      row.appendChild(st);
+      container.appendChild(row);
+    });
+    new bootstrap.Modal(dupModalEl).show();
+  }
+
+  submitAnywayBtn.addEventListener('click', function () {
+    forceSubmit.value = '1';
+    const inst = bootstrap.Modal.getInstance(dupModalEl);
+    if (inst) inst.hide();
+    form.requestSubmit();
+  });
+})();
+</script>
+{% endblock %}

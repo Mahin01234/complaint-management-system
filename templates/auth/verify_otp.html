@@ -1,0 +1,77 @@
+{% extends "base_public.html" %}
+{% block title %}Verify OTP{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card p-4 p-lg-5 shadow-sm border-0">
+      <div class="text-center mb-4">
+        <div class="stat-icon bg-primary-subtle text-primary mx-auto mb-3">
+          <i class="bi bi-shield-check"></i>
+        </div>
+        <h4 class="fw-bold mb-1">Enter OTP</h4>
+        <p class="text-muted small mb-0">We've sent a 6-digit code to <br><b>{{ session.get('reset_email') }}</b></p>
+      </div>
+
+      <!-- স্ক্রিনে OTP দেখানোর বক্স -->
+      {% if session.get('display_otp') %}
+      <div class="alert alert-warning text-center shadow-sm" style="border: 2px dashed #ffc107;">
+        <h6 class="mb-1 text-dark fw-bold">⚠️ Demo Purpose Only</h6>
+        <p class="mb-1 text-muted small">Your OTP Code is:</p>
+        <h2 class="fw-bold text-danger" style="letter-spacing: 8px;">{{ session.get('display_otp') }}</h2>
+      </div>
+      {% endif %}
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} py-2 small">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="post" novalidate>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">One-Time Password</label>
+          <input type="text" name="otp" class="form-control text-center fw-bold fs-4" 
+                 maxlength="6" placeholder="------" required autofocus autocomplete="off">
+        </div>
+        <button class="btn btn-primary w-100 py-2">Verify OTP</button>
+      </form>
+
+      <p class="text-center small text-muted mt-4 mb-0">
+        Didn't get the code? <a href="{{ url_for('forgot_password') }}" class="fw-semibold text-decoration-none">Try again</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- পেজ লোড হলেই পপ-আপ (Modal) আকারে OTP দেখাবে -->
+{% if session.get('display_otp') %}
+<div id="otpPopup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+  <div style="background: white; width: 90%; max-width: 400px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow: hidden; text-align: center; animation: popIn 0.3s ease-out;">
+    
+    <!-- হেডার -->
+    <div style="background: #ffc107; padding: 20px; color: #000;">
+      <i class="bi bi-envelope-check-fill" style="font-size: 3.5rem; line-height: 1;"></i>
+      <h3 style="margin-top: 10px; margin-bottom: 0; font-weight: bold;">Demo OTP</h3>
+    </div>
+    
+    <!-- বডি -->
+    <div style="padding: 25px;">
+      <p style="color: #555; font-size: 16px; margin-bottom: 10px;">Your OTP Code is:</p>
+      <h1 style="color: #dc3545; letter-spacing: 10px; font-weight: bold; margin-bottom: 20px;">{{ session.get('display_otp') }}</h1>
+      <button onclick="document.getElementById('otpPopup').style.display='none'" 
+              style="background: #0d6efd; color: white; border: none; padding: 12px 20px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+        Okay, I copied it
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  @keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+{% endif %}
+{% endblock %}

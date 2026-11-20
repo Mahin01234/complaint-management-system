@@ -1,0 +1,706 @@
+{% extends "base.html" %}
+{% block title %}Reports & Analytics{% endblock %}
+{% block page_title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<style>
+  /* ============ PROFESSIONAL DASHBOARD THEME ============ */
+  :root {
+    --bg-main: #f8fafc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --primary: #4f46e5;
+    --primary-light: #eef2ff;
+    --success: #10b981;
+    --success-light: #ecfdf5;
+    --warning: #f59e0b;
+    --warning-light: #fffbeb;
+    --danger: #ef4444;
+    --danger-light: #fef2f2;
+    --font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body { background-color: var(--bg-main); font-family: var(--font-family); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); transition: all 0.2s ease; }
+  .card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
+
+  /* ============ HERO ============ */
+  .rp-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+    border-radius: 20px; padding: 32px; color: #fff; margin-bottom: 24px;
+    position: relative; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(67, 56, 202, 0.4);
+  }
+  .rp-hero::before {
+    content: ""; position: absolute; width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+    top: -100px; right: -50px; border-radius: 50%;
+  }
+  .rp-hero h4 { font-weight: 800; margin-bottom: 8px; position: relative; z-index: 2; letter-spacing: -0.5px; }
+  .rp-hero p { opacity: 0.85; margin: 0; font-size: 0.95rem; position: relative; z-index: 2; font-weight: 400; }
+
+  /* ============ FILTER BAR ============ */
+  .rp-filter {
+    background: var(--surface); border-radius: 16px; border: 1px solid var(--border);
+    padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+  .rp-filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; align-items: end; }
+  .rp-field label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+  .rp-field input, .rp-field select { border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 0.88rem; width: 100%; transition: all 0.15s; background: #f8fafc; color: var(--text-main); }
+  .rp-field input:focus, .rp-field select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px var(--primary-light); outline: none; }
+  
+  .rp-btn { border-radius: 10px; padding: 10px 20px; font-size: 0.88rem; font-weight: 600; border: 0; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .rp-btn-apply { background: var(--primary); color: #fff; box-shadow: 0 2px 4px rgba(79,70,229,0.2); }
+  .rp-btn-apply:hover { background: #4338ca; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(79,70,229,0.3); }
+  .rp-btn-reset { background: #fff; border: 1.5px solid var(--border); color: var(--text-main); }
+  .rp-btn-reset:hover { background: #f1f5f9; border-color: #cbd5e1; }
+
+  /* Export Row */
+  .rp-exports { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); }
+  .rp-export-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text-main); font-size: 0.82rem; font-weight: 600; text-decoration: none; transition: all 0.15s; }
+  .rp-export-btn:hover { background: #f8fafc; border-color: #cbd5e1; transform: translateY(-1px); }
+  .rp-export-btn.pdf { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+  .rp-export-btn.pdf:hover { background: #fee2e2; }
+  .rp-export-btn.csv { color: #047857; border-color: #a7f3d0; background: #ecfdf5; }
+  .rp-export-btn.csv:hover { background: #d1fae5; }
+
+  /* ============ KPI CARDS ============ */
+  .rp-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .rp-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; position: relative; overflow: hidden; transition: all 0.2s; }
+  .rp-kpi:hover { transform: translateY(-3px); box-shadow: 0 10px 20px -5px rgba(0,0,0,0.08); border-color: #cbd5e1; }
+  .rp-kpi-icon { width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 16px; }
+  .rp-kpi-value { font-size: 1.9rem; font-weight: 800; line-height: 1; color: var(--text-main); margin-bottom: 6px; letter-spacing: -0.5px;}
+  .rp-kpi-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+  .rp-kpi-trend { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; margin-top: 12px; padding: 4px 10px; border-radius: 20px; }
+  .rp-kpi-trend.up { background: var(--success-light); color: #047857; }
+  .rp-kpi-trend.down { background: var(--danger-light); color: #b91c1c; }
+  .rp-kpi-trend.neutral { background: #f1f5f9; color: var(--text-muted); }
+
+  /* Specific Card Accents */
+  .kpi-primary .rp-kpi-icon { background: var(--primary-light); color: var(--primary); }
+  .kpi-success .rp-kpi-icon { background: var(--success-light); color: var(--success); }
+  .kpi-warning .rp-kpi-icon { background: var(--warning-light); color: var(--warning); }
+  .kpi-danger .rp-kpi-icon { background: var(--danger-light); color: var(--danger); }
+  .kpi-info .rp-kpi-icon { background: #e0f2fe; color: #0284c7; }
+
+  /* ============ CHART CARDS ============ */
+  .rp-chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+  .rp-chart-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+  .rp-chart-head h6 { font-weight: 800; font-size: 1rem; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px; }
+  .rp-chart-head small { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; background: #f1f5f9; padding: 2px 8px; border-radius: 12px; }
+  .rp-chart-container { position: relative; height: 280px; width: 100%; }
+
+  /* ============ TABLES ============ */
+  .rp-table { width: 100%; margin: 0; border-collapse: separate; border-spacing: 0; }
+  .rp-table thead th { background: #f8fafc; padding: 12px 16px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid var(--border); border-top: 1px solid var(--border); }
+  .rp-table thead th:first-child { border-top-left-radius: 12px; border-left: 1px solid var(--border); }
+  .rp-table thead th:last-child { border-top-right-radius: 12px; border-right: 1px solid var(--border); }
+  .rp-table tbody td { padding: 16px; font-size: 0.88rem; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text-main); }
+  .rp-table tbody tr:last-child td { border-bottom: 0; }
+  .rp-table tbody tr:hover td { background: #f8fafc; }
+
+  .rp-officer-avatar { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #4338ca); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; box-shadow: 0 2px 4px rgba(79,70,229,0.2); }
+  
+  .rp-rank { width: 26px; height: 26px; border-radius: 8px; background: #f1f5f9; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .rp-rank.gold { background: linear-gradient(135deg, #fbbf24, #d97706); color: #fff; box-shadow: 0 2px 4px rgba(217,119,6,0.3); }
+  .rp-rank.silver { background: linear-gradient(135deg, #cbd5e1, #94a3b8); color: #fff; }
+  .rp-rank.bronze { background: linear-gradient(135deg, #fb923c, #c2410c); color: #fff; }
+
+  .rp-progress-bar { height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden; width: 100%; margin-top: 6px; }
+  .rp-progress-fill { height: 100%; background: linear-gradient(90deg, #34d399, #10b981); border-radius: 4px; transition: width 0.4s ease; }
+
+  .rp-trk { font-family: 'Courier New', monospace; font-size: 0.8rem; font-weight: 700; background: var(--primary-light); color: var(--primary); padding: 4px 10px; border-radius: 6px; text-decoration: none; transition: all 0.15s; }
+  .rp-trk:hover { background: var(--primary); color: #fff; }
+
+  /* ============ PAGINATION ============ */
+  .rp-pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 24px; }
+  .rp-page-btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text-main); font-size: 0.85rem; font-weight: 600; text-decoration: none; transition: all 0.15s; }
+  .rp-page-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: var(--text-main); }
+  .rp-page-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .rp-page-btn.disabled { opacity: 0.5; pointer-events: none; }
+
+  /* ============ EMPTY STATE ============ */
+  .rp-empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .rp-empty-icon { width: 64px; height: 64px; border-radius: 50%; background: #f1f5f9; color: #94a3b8; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 16px; }
+  
+  @media (max-width: 767.98px) {
+    .rp-hero { padding: 24px; }
+    .rp-kpi-grid { grid-template-columns: 1fr; }
+    .rp-chart-container { height: 240px; }
+  }
+</style>
+
+{# ============ HERO ============ #}
+<div class="rp-hero">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+      <h4><i class="bi bi-bar-chart-line-fill me-2"></i>Reports & Analytics</h4>
+      <p>Gain insights, track operational performance, and analyze complaint trends.</p>
+    </div>
+    {% if start or end or status %}
+    <span class="badge bg-white text-primary px-3 py-2 rounded-pill shadow-sm" style="font-size:0.8rem;">
+      <i class="bi bi-funnel-fill me-1"></i>Filtered View
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+{# ============ FILTER BAR ============ #}
+<form method="get" class="rp-filter">
+  <div class="rp-filter-row">
+    <div class="rp-field">
+      <label>Start Date</label>
+      <input type="date" name="start" value="{{ start }}">
+    </div>
+    <div class="rp-field">
+      <label>End Date</label>
+      <input type="date" name="end" value="{{ end }}">
+    </div>
+    <div class="rp-field">
+      <label>Status</label>
+      <select name="status">
+        <option value="">All Statuses</option>
+        {% for s in STATUSES %}
+          <option value="{{ s }}" {{ 'selected' if s == status }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="rp-field">
+      <button type="submit" class="rp-btn rp-btn-apply w-100">
+        <i class="bi bi-funnel"></i> Apply Filters
+      </button>
+    </div>
+    <div class="rp-field">
+      <a href="{{ url_for('admin_reports') }}" class="rp-btn rp-btn-reset w-100">
+        <i class="bi bi-arrow-clockwise"></i> Reset
+      </a>
+    </div>
+  </div>
+
+  {# Export buttons #}
+  <div class="rp-exports">
+    <span class="text-muted small align-self-center me-2 fw-semibold text-uppercase" style="letter-spacing:0.5px; font-size:0.72rem;">
+      <i class="bi bi-cloud-download"></i> Export Data
+    </span>
+    <a href="{{ url_for('report_pdf', start=start, end=end, status=status) }}" class="rp-export-btn pdf">
+      <i class="bi bi-file-earmark-pdf"></i> PDF Report
+    </a>
+    <a href="{{ url_for('report_csv', start=start, end=end, status=status) }}" class="rp-export-btn csv">
+      <i class="bi bi-filetype-csv"></i> CSV Data
+    </a>
+    <a href="{{ url_for('admin_reports') }}" class="rp-export-btn" style="margin-left:auto;">
+      <i class="bi bi-printer"></i> Print View
+    </a>
+  </div>
+</form>
+
+{# ============ KPI CARDS ============ #}
+<div class="rp-kpi-grid">
+  <div class="rp-kpi kpi-primary">
+    <div class="rp-kpi-icon"><i class="bi bi-collection-fill"></i></div>
+    <div class="rp-kpi-value">{{ total }}</div>
+    <div class="rp-kpi-label">Total Complaints</div>
+    <div class="rp-kpi-trend up"><i class="bi bi-arrow-up-right"></i> {{ today }} today</div>
+  </div>
+
+  <div class="rp-kpi kpi-success">
+    <div class="rp-kpi-icon"><i class="bi bi-check-circle-fill"></i></div>
+    <div class="rp-kpi-value">{{ resolved }}</div>
+    <div class="rp-kpi-label">Resolved</div>
+    <div class="rp-kpi-trend up"><i class="bi bi-graph-up-arrow"></i> {{ ((resolved / total * 100)|round(1)) if total else 0 }}% rate</div>
+  </div>
+
+  <div class="rp-kpi kpi-warning">
+    <div class="rp-kpi-icon"><i class="bi bi-gear-fill"></i></div>
+    <div class="rp-kpi-value">{{ in_progress }}</div>
+    <div class="rp-kpi-label">In Progress</div>
+    <div class="rp-kpi-trend neutral"><i class="bi bi-hourglass-split"></i> Active cases</div>
+  </div>
+
+  <div class="rp-kpi kpi-danger">
+    <div class="rp-kpi-icon"><i class="bi bi-exclamation-circle-fill"></i></div>
+    <div class="rp-kpi-value">{{ pending }}</div>
+    <div class="rp-kpi-label">Pending Action</div>
+    <div class="rp-kpi-trend down"><i class="bi bi-exclamation-triangle"></i> Needs review</div>
+  </div>
+
+  <div class="rp-kpi kpi-info">
+    <div class="rp-kpi-icon"><i class="bi bi-stopwatch-fill"></i></div>
+    <div class="rp-kpi-value">{{ avg_resolution_hours }}<small style="font-size:0.5em; font-weight:600;"> hrs</small></div>
+    <div class="rp-kpi-label">Avg Resolution</div>
+    <div class="rp-kpi-trend neutral"><i class="bi bi-clock-history"></i> Turnaround</div>
+  </div>
+
+  <div class="rp-kpi kpi-warning">
+    <div class="rp-kpi-icon"><i class="bi bi-star-fill"></i></div>
+    <div class="rp-kpi-value">{{ avg_rating }}</div>
+    <div class="rp-kpi-label">Avg Rating</div>
+    <div class="rp-kpi-trend up"><i class="bi bi-chat-heart-fill"></i> {{ feedback_count }} reviews</div>
+  </div>
+</div>
+
+{# ============ CHARTS ROW 1 ============ #}
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="rp-chart-card" style="margin-bottom: 0;">
+      <div class="rp-chart-head">
+        <h6><i class="bi bi-graph-up text-primary"></i> Monthly Trend</h6>
+        <small>Last 6 Months</small>
+      </div>
+      <div class="rp-chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="rp-chart-card" style="margin-bottom: 0;">
+      <div class="rp-chart-head">
+        <h6><i class="bi bi-pie-chart-fill text-primary"></i> Status Distribution</h6>
+      </div>
+      <div class="rp-chart-container">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ============ CHARTS ROW 2 ============ #}
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="rp-chart-card" style="margin-bottom: 0;">
+      <div class="rp-chart-head">
+        <h6><i class="bi bi-bar-chart-fill text-primary"></i> Complaints by Category</h6>
+      </div>
+      <div class="rp-chart-container">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3">
+    <div class="rp-chart-card" style="margin-bottom: 0;">
+      <div class="rp-chart-head">
+        <h6><i class="bi bi-flag-fill text-primary"></i> Priority</h6>
+      </div>
+      <div class="rp-chart-container">
+        <canvas id="priorityChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3">
+    <div class="rp-chart-card" style="margin-bottom: 0;">
+      <div class="rp-chart-head">
+        <h6><i class="bi bi-star-fill text-primary"></i> Ratings</h6>
+      </div>
+      <div class="rp-chart-container">
+        <canvas id="ratingChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ============ COMPLAINTS DATA (PAGINATED) ============ #}
+<div class="rp-chart-card">
+  <div class="rp-chart-head">
+    <h6><i class="bi bi-list-ul text-primary"></i> Complaints Data</h6>
+    <small>Total: {{ complaints_pagination.total }} complaints</small>
+  </div>
+
+  {% if complaints_pagination.items %}
+  <div class="table-responsive">
+    <table class="rp-table">
+      <thead>
+        <tr>
+          <th>Tracking ID</th>
+          <th>Complaint Title</th>
+          <th>Category</th>
+          <th>User</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Date Logged</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in complaints_pagination.items %}
+        <tr>
+          <td>
+            <a href="{{ url_for('complaint_detail', cid=c.id) }}" class="rp-trk">{{ c.tracking_id }}</a>
+          </td>
+          <td>
+            <div class="fw-semibold">{{ c.title|truncate(40) }}</div>
+          </td>
+          <td class="text-muted" style="font-size:0.8rem;">{{ c.category.name if c.category else '—' }}</td>
+          <td class="text-muted" style="font-size:0.8rem;">{{ c.user.name if c.user else '—' }}</td>
+          <td><span class="badge bg-{{ c.priority_badge }}-subtle text-{{ c.priority_badge }} border border-{{ c.priority_badge }}-subtle px-2 py-1">{{ c.priority }}</span></td>
+          <td><span class="badge bg-{{ c.status_badge }} px-2 py-1">{{ c.status }}</span></td>
+          <td class="text-muted" style="font-size:0.8rem;">{{ c.created_at.strftime('%d %b %Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Controls -->
+  {% if complaints_pagination.pages > 1 %}
+  <div class="rp-pagination">
+    {% if complaints_pagination.has_prev %}
+      <a href="{{ url_for('admin_reports', page=complaints_pagination.prev_num, start=start, end=end, status=status) }}" class="rp-page-btn"><i class="bi bi-chevron-left"></i> Prev</a>
+    {% else %}
+      <span class="rp-page-btn disabled"><i class="bi bi-chevron-left"></i> Prev</span>
+    {% endif %}
+
+    {% for page_num in complaints_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+      {% if page_num %}
+        {% if page_num != complaints_pagination.page %}
+          <a href="{{ url_for('admin_reports', page=page_num, start=start, end=end, status=status) }}" class="rp-page-btn">{{ page_num }}</a>
+        {% else %}
+          <span class="rp-page-btn active">{{ page_num }}</span>
+        {% endif %}
+      {% else %}
+        <span class="rp-page-btn disabled">...</span>
+      {% endif %}
+    {% endfor %}
+
+    {% if complaints_pagination.has_next %}
+      <a href="{{ url_for('admin_reports', page=complaints_pagination.next_num, start=start, end=end, status=status) }}" class="rp-page-btn">Next <i class="bi bi-chevron-right"></i></a>
+    {% else %}
+      <span class="rp-page-btn disabled">Next <i class="bi bi-chevron-right"></i></span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="rp-empty">
+    <div class="rp-empty-icon"><i class="bi bi-inbox"></i></div>
+    <div class="fw-bold text-dark mb-1">No Complaints Found</div>
+    <div class="small">Try adjusting your filters.</div>
+  </div>
+  {% endif %}
+</div>
+
+{# ============ OFFICER PERFORMANCE ============ #}
+<div class="rp-chart-card">
+  <div class="rp-chart-head">
+    <h6><i class="bi bi-trophy-fill text-warning"></i> Officer Performance</h6>
+    <small>Ranked by resolution rate</small>
+  </div>
+
+  {% if officer_perf %}
+  <div class="table-responsive">
+    <table class="rp-table">
+      <thead>
+        <tr>
+          <th style="width:50px;" class="text-center">Rank</th>
+          <th>Officer Details</th>
+          <th class="text-center">Total</th>
+          <th class="text-center">Resolved</th>
+          <th style="width:200px;">Resolution Rate</th>
+          <th class="text-center">Rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in officer_perf %}
+        <tr>
+          <td class="text-center">
+            <span class="rp-rank {{ 'gold' if loop.index == 1 else 'silver' if loop.index == 2 else 'bronze' if loop.index == 3 else '' }}">
+              #{{ loop.index }}
+            </span>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-3">
+              <span class="rp-officer-avatar">{{ p.officer.initials }}</span>
+              <div>
+                <div class="fw-bold" style="font-size:0.9rem;">{{ p.officer.name }}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{{ p.officer.department or 'General' }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="text-center"><span class="badge bg-light text-dark border">{{ p.total }}</span></td>
+          <td class="text-center"><span class="badge bg-success">{{ p.resolved }}</span></td>
+          <td>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="text-muted" style="font-size:0.75rem; font-weight:600;">Progress</span>
+              <span class="fw-bold" style="font-size:0.8rem;">{{ p.rate }}%</span>
+            </div>
+            <div class="rp-progress-bar">
+              <div class="rp-progress-fill" style="width: {{ p.rate }}%;"></div>
+            </div>
+          </td>
+          <td class="text-center">
+            {% if p.rating > 0 %}
+            <div class="text-warning" style="font-size:0.85rem;">
+              <i class="bi bi-star-fill"></i> {{ p.rating }}
+            </div>
+            {% else %}
+            <span class="text-muted" style="font-size:0.75rem;">N/A</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="rp-empty">
+    <div class="rp-empty-icon"><i class="bi bi-person-x"></i></div>
+    <div class="fw-bold text-dark mb-1">No Officer Data</div>
+    <div class="small">Assign complaints to see performance metrics.</div>
+  </div>
+  {% endif %}
+</div>
+
+{# ============ DAILY VOLUME ============ #}
+<div class="rp-chart-card mb-0">
+  <div class="rp-chart-head">
+    <h6><i class="bi bi-activity text-primary"></i> Daily Volume</h6>
+    <small>Last 30 Days</small>
+  </div>
+  <div class="rp-chart-container" style="height: 320px;">
+    <canvas id="dailyChart"></canvas>
+  </div>
+  
+  <!-- Daily stats summary below the chart -->
+  <div class="row g-3 mt-4">
+    <div class="col-md-4">
+      <div class="p-3 bg-light rounded-3 text-center">
+        <div class="text-muted small fw-semibold">Total (30 days)</div>
+        <div class="fs-4 fw-bold text-dark">{{ daily_counts|sum }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 bg-light rounded-3 text-center">
+        <div class="text-muted small fw-semibold">Daily Average</div>
+        <div class="fs-4 fw-bold text-primary">{{ (daily_counts|sum / 30)|round(1) }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 bg-light rounded-3 text-center">
+        <div class="text-muted small fw-semibold">Peak Day</div>
+        <div class="fs-4 fw-bold text-success">{{ daily_counts|max }} <small class="fs-6 text-muted">cases</small></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  'use strict';
+
+  const trendLabels = {{ trend_labels|default([])|tojson }};
+  const trendCounts = {{ trend_counts|default([])|tojson }};
+  const trendResolved = {{ trend_resolved|default([])|tojson }};
+
+  const byStatus = {{ by_status|default({})|tojson }};
+  const byPriority = {{ by_priority|default({})|tojson }};
+  const ratingDist = {{ rating_dist|default({})|tojson }};
+
+  const dailyLabels = {{ daily_labels|default([])|tojson }};
+  const dailyCounts = {{ daily_counts|default([])|tojson }};
+
+  const categoryLabels = {{ by_category|map(attribute=0)|list|default([])|tojson }};
+  const categoryData = {{ by_category|map(attribute=1)|list|default([])|tojson }};
+
+  Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#64748b';
+
+  /* ============ 1. Monthly Trend ============ */
+  const trendEl = document.getElementById('trendChart');
+  if (trendEl) {
+    const ctx = trendEl.getContext('2d');
+    const gradientBlue = ctx.createLinearGradient(0, 0, 0, 300);
+    gradientBlue.addColorStop(0, 'rgba(79,70,229,0.2)');
+    gradientBlue.addColorStop(1, 'rgba(79,70,229,0)');
+
+    const gradientGreen = ctx.createLinearGradient(0, 0, 0, 300);
+    gradientGreen.addColorStop(0, 'rgba(16,185,129,0.2)');
+    gradientGreen.addColorStop(1, 'rgba(16,185,129,0)');
+
+    new Chart(trendEl, {
+      type: 'line',
+      data: {
+        labels: trendLabels,
+        datasets: [
+          {
+            label: 'Total Complaints',
+            data: trendCounts,
+            borderColor: '#4f46e5',
+            backgroundColor: gradientBlue,
+            fill: true, tension: 0.4, pointRadius: 4,
+            pointBackgroundColor: '#fff', pointBorderColor: '#4f46e5', pointBorderWidth: 2,
+            borderWidth: 3
+          },
+          {
+            label: 'Resolved',
+            data: trendResolved,
+            borderColor: '#10b981',
+            backgroundColor: gradientGreen,
+            fill: true, tension: 0.4, pointRadius: 4,
+            pointBackgroundColor: '#fff', pointBorderColor: '#10b981', pointBorderWidth: 2,
+            borderWidth: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: { 
+          legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8, padding: 20, font: { weight: '600' } } },
+          tooltip: { backgroundColor: '#1e293b', titleFont: { size: 13, weight: 'bold' }, padding: 12, cornerRadius: 8 }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9', drawBorder: false } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  /* ============ 2. Status Distribution ============ */
+  const statusEl = document.getElementById('statusChart');
+  if (statusEl) {
+    const statusLabels = Object.keys(byStatus);
+    const statusData = Object.values(byStatus);
+    const statusColors = {
+      'Pending': '#64748b', 'In Review': '#0ea5e9', 'Assigned': '#4f46e5',
+      'In Progress': '#f59e0b', 'Resolved': '#10b981', 'Closed': '#1e293b', 'Rejected': '#ef4444'
+    };
+    new Chart(statusEl, {
+      type: 'doughnut',
+      data: {
+        labels: statusLabels,
+        datasets: [{ 
+          data: statusData, 
+          backgroundColor: statusLabels.map(l => statusColors[l] || '#64748b'), 
+          borderWidth: 3, borderColor: '#ffffff', hoverOffset: 4 
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '70%',
+        plugins: { 
+          legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 16, font: { size: 11, weight: '500' } } },
+          tooltip: { backgroundColor: '#1e293b', padding: 12, cornerRadius: 8 }
+        }
+      }
+    });
+  }
+
+  /* ============ 3. Category Chart ============ */
+  const categoryEl = document.getElementById('categoryChart');
+  if (categoryEl) {
+    new Chart(categoryEl, {
+      type: 'bar',
+      data: {
+        labels: categoryLabels,
+        datasets: [{ 
+          data: categoryData, 
+          backgroundColor: '#4f46e5', hoverBackgroundColor: '#4338ca', 
+          borderRadius: 6, barThickness: 24 
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b', padding: 10, cornerRadius: 6 } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9', drawBorder: false } },
+          y: { grid: { display: false }, ticks: { font: { weight: '600' } } }
+        }
+      }
+    });
+  }
+
+  /* ============ 4. Priority Chart ============ */
+  const priorityEl = document.getElementById('priorityChart');
+  if (priorityEl) {
+    const prioLabels = Object.keys(byPriority);
+    const prioData = Object.values(byPriority);
+    const prioColors = { 'Low': '#64748b', 'Medium': '#0ea5e9', 'High': '#f59e0b', 'Urgent': '#ef4444' };
+    new Chart(priorityEl, {
+      type: 'polarArea',
+      data: {
+        labels: prioLabels,
+        datasets: [{ data: prioData, backgroundColor: prioLabels.map(l => (prioColors[l] || '#64748b') + 'cc'), borderColor: '#ffffff', borderWidth: 2 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 12, font: { size: 11 } } } },
+        scales: { r: { ticks: { display: false }, grid: { color: '#f1f5f9' } } }
+      }
+    });
+  }
+
+  /* ============ 5. Rating Chart ============ */
+  const ratingEl = document.getElementById('ratingChart');
+  if (ratingEl) {
+    new Chart(ratingEl, {
+      type: 'bar',
+      data: {
+        labels: ['1★', '2★', '3★', '4★', '5★'],
+        datasets: [{
+          data: [ ratingDist['1'] || 0, ratingDist['2'] || 0, ratingDist['3'] || 0, ratingDist['4'] || 0, ratingDist['5'] || 0 ],
+          backgroundColor: ['#ef4444', '#f59e0b', '#eab308', '#84cc16', '#10b981'],
+          borderRadius: 6, barThickness: 24
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9', drawBorder: false } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  /* ============ 6. Daily Trend ============ */
+  const dailyEl = document.getElementById('dailyChart');
+  if (dailyEl) {
+    const ctx = dailyEl.getContext('2d');
+    const gradientPurple = ctx.createLinearGradient(0, 0, 0, 300);
+    gradientPurple.addColorStop(0, 'rgba(124,58,237,0.3)');
+    gradientPurple.addColorStop(1, 'rgba(124,58,237,0)');
+
+    new Chart(dailyEl, {
+      type: 'line',
+      data: {
+        labels: dailyLabels,
+        datasets: [{
+          label: 'Daily Complaints',
+          data: dailyCounts,
+          borderColor: '#7c3aed',
+          backgroundColor: gradientPurple,
+          fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 6, borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b', padding: 10, cornerRadius: 8,
+            callbacks: {
+              title: (items) => items[0].label,
+              label: (item) => item.parsed.y + ' complaint(s)'
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9', drawBorder: false } },
+          x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 10 } } }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

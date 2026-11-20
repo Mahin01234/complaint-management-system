@@ -1,0 +1,730 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+<style>
+  /* ============ HERO ============ */
+  .pr-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 18px;
+    padding: 30px;
+    color: #fff;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+  }
+  .pr-hero::after {
+    content: "";
+    position: absolute;
+    width: 240px; height: 240px;
+    background: rgba(255,255,255,.08);
+    border-radius: 50%;
+    top: -100px; right: -60px;
+  }
+  .pr-hero::before {
+    content: "";
+    position: absolute;
+    width: 160px; height: 160px;
+    background: rgba(255,255,255,.05);
+    border-radius: 50%;
+    bottom: -80px; left: 30%;
+  }
+  .pr-avatar-xl {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a5b4fc, #6366f1);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    border: 4px solid rgba(255,255,255,.3);
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+  }
+  .pr-hero-info { position: relative; z-index: 2; flex: 1; min-width: 200px; }
+  .pr-hero-info h4 { font-weight: 700; margin: 0 0 6px; }
+  .pr-hero-info .email { opacity: .85; font-size: .9rem; margin-bottom: 10px; }
+  .pr-hero-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pr-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    background: rgba(255,255,255,.2);
+    border: 1px solid rgba(255,255,255,.25);
+    backdrop-filter: blur(4px);
+  }
+  .pr-hero-badge.success { background: rgba(16,185,129,.3); border-color: rgba(16,185,129,.4); }
+
+  /* ============ STATS CARDS ============ */
+  .pr-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .pr-stat {
+    background: #fff;
+    border: 1px solid #eef0f4;
+    border-radius: 12px;
+    padding: 14px;
+    transition: all .15s;
+  }
+  .pr-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16,24,40,.08);
+    border-color: #c7d2fe;
+  }
+  .pr-stat-icon {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  .pr-stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .pr-stat-label {
+    font-size: .74rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  /* ============ FORM CARD ============ */
+  .pr-card {
+    background: #fff;
+    border: 1px solid #eef0f4;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .pr-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .pr-card-head-icon {
+    width: 38px; height: 38px;
+    background: #eef2ff;
+    color: #4f46e5;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+  }
+  .pr-card-head h6 {
+    margin: 0;
+    font-weight: 700;
+    font-size: .95rem;
+    color: #111827;
+  }
+  .pr-card-head small {
+    color: #6b7280;
+    font-size: .75rem;
+    display: block;
+    margin-top: 1px;
+  }
+  .pr-field { margin-bottom: 16px; }
+  .pr-field:last-child { margin-bottom: 0; }
+  .pr-field label {
+    font-size: .82rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .pr-field .required { color: #ef4444; margin-left: 2px; }
+  .pr-field input,
+  .pr-field textarea {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: .9rem;
+    width: 100%;
+    transition: all .15s;
+    background: #fff;
+  }
+  .pr-field input:focus,
+  .pr-field textarea:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79,70,229,.1);
+    outline: none;
+  }
+  .pr-field input:disabled,
+  .pr-field input[readonly] {
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: not-allowed;
+  }
+  .pr-field textarea { resize: vertical; min-height: 80px; }
+  .pr-field .hint {
+    font-size: .74rem;
+    color: #6b7280;
+    margin-top: 5px;
+  }
+  .pr-field .hint.danger { color: #dc2626; }
+  .pr-field .hint.success { color: #059669; }
+
+  /* ============ BUTTONS ============ */
+  .pr-btn-primary {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    border: 0;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: .88rem;
+    transition: all .15s;
+    box-shadow: 0 4px 12px rgba(79,70,229,.25);
+    cursor: pointer;
+  }
+  .pr-btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(79,70,229,.35);
+    color: #fff;
+  }
+  .pr-btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+
+  .pr-btn-secondary {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    color: #374151;
+    padding: 9px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: .88rem;
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .pr-btn-secondary:hover {
+    background: #f9fafb;
+    border-color: #c7d2fe;
+    color: #4f46e5;
+  }
+
+  /* ============ PASSWORD STRENGTH ============ */
+  .pr-pw-meter {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .pr-pw-meter > div {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: #e5e7eb;
+    transition: background .2s;
+  }
+  .pr-pw-meter.s1 > div:nth-child(-n+1) { background: #ef4444; }
+  .pr-pw-meter.s2 > div:nth-child(-n+2) { background: #f59e0b; }
+  .pr-pw-meter.s3 > div:nth-child(-n+3) { background: #eab308; }
+  .pr-pw-meter.s4 > div:nth-child(-n+4) { background: #84cc16; }
+  .pr-pw-meter.s5 > div:nth-child(-n+5) { background: #10b981; }
+
+  /* ============ INFO LIST ============ */
+  .pr-info-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .pr-info-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    font-size: .84rem;
+    border-bottom: 1px dashed #f3f4f6;
+  }
+  .pr-info-list li:last-child { border-bottom: 0; padding-bottom: 0; }
+  .pr-info-list .label { color: #6b7280; }
+  .pr-info-list .value {
+    font-weight: 600;
+    color: #111827;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+  }
+
+  /* ============ SECURITY CARD ============ */
+  .pr-security-card {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fcd34d;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .pr-security-card h6 {
+    font-size: .85rem;
+    font-weight: 700;
+    color: #78350f;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pr-security-card ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: .78rem;
+    color: #78350f;
+    line-height: 1.7;
+  }
+
+  /* Responsive */
+  @media (max-width: 767.98px) {
+    .pr-hero { padding: 24px 20px; flex-direction: column; text-align: center; }
+    .pr-hero-badges { justify-content: center; }
+    .pr-avatar-xl { width: 82px; height: 82px; font-size: 2rem; }
+  }
+</style>
+
+{# ============ HERO ============ #}
+<div class="pr-hero">
+  <div class="pr-avatar-xl">{{ current_user.initials }}</div>
+
+  <div class="pr-hero-info">
+    <h4>{{ current_user.name }}</h4>
+    <div class="email">
+      <i class="bi bi-envelope me-1"></i>{{ current_user.email }}
+    </div>
+    <div class="pr-hero-badges">
+      <span class="pr-hero-badge">
+        <i class="bi bi-person-badge"></i> {{ current_user.role|upper }}
+      </span>
+      {% if current_user.is_active %}
+      <span class="pr-hero-badge success">
+        <i class="bi bi-check-circle-fill"></i> Active
+      </span>
+      {% else %}
+      <span class="pr-hero-badge">
+        <i class="bi bi-x-circle-fill"></i> Inactive
+      </span>
+      {% endif %}
+      {% if current_user.department %}
+      <span class="pr-hero-badge">
+        <i class="bi bi-building"></i> {{ current_user.department }}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  {# ============ LEFT COLUMN: STATS + INFO ============ #}
+  <div class="col-lg-4">
+
+    {# --- Account stats (role-based) --- #}
+    <div class="pr-stats-grid">
+      {% if current_user.role == 'user' %}
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#eef2ff;color:#4f46e5;">
+            <i class="bi bi-inbox"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.total }}</div>
+          <div class="pr-stat-label">Total Complaints</div>
+        </div>
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#d1fae5;color:#059669;">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.resolved }}</div>
+          <div class="pr-stat-label">Resolved</div>
+        </div>
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#fef3c7;color:#d97706;">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.pending }}</div>
+          <div class="pr-stat-label">In Progress</div>
+        </div>
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#fee2e2;color:#dc2626;">
+            <i class="bi bi-star"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.pending_feedback }}</div>
+          <div class="pr-stat-label">Awaiting Review</div>
+        </div>
+
+      {% elif current_user.role == 'officer' %}
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#eef2ff;color:#4f46e5;">
+            <i class="bi bi-clipboard-check"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.assigned }}</div>
+          <div class="pr-stat-label">Assigned</div>
+        </div>
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#d1fae5;color:#059669;">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.resolved }}</div>
+          <div class="pr-stat-label">Resolved</div>
+        </div>
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#fef3c7;color:#d97706;">
+            <i class="bi bi-gear-fill"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.active }}</div>
+          <div class="pr-stat-label">Active</div>
+        </div>
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#fef3c7;color:#d97706;">
+            <i class="bi bi-star-fill"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.avg_rating }}</div>
+          <div class="pr-stat-label">Avg Rating</div>
+        </div>
+
+      {% else %}
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#eef2ff;color:#4f46e5;">
+            <i class="bi bi-collection"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.total_complaints }}</div>
+          <div class="pr-stat-label">Complaints</div>
+        </div>
+        <div class="pr-stat">
+          <div class="pr-stat-icon" style="background:#e0f2fe;color:#0284c7;">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.total_users }}</div>
+          <div class="pr-stat-label">Users</div>
+        </div>
+        <div class="pr-stat" style="grid-column: 1 / -1;">
+          <div class="pr-stat-icon" style="background:#d1fae5;color:#059669;">
+            <i class="bi bi-person-badge-fill"></i>
+          </div>
+          <div class="pr-stat-value">{{ stats.total_officers }}</div>
+          <div class="pr-stat-label">Active Officers</div>
+        </div>
+      {% endif %}
+    </div>
+
+    {# --- Account information --- #}
+    <div class="pr-card">
+      <div class="pr-card-head">
+        <div class="pr-card-head-icon">
+          <i class="bi bi-info-circle"></i>
+        </div>
+        <div>
+          <h6>Account Information</h6>
+          <small>Managed by the system</small>
+        </div>
+      </div>
+
+      <ul class="pr-info-list">
+        <li>
+          <span class="label">Member Since</span>
+          <span class="value">{{ current_user.created_at.strftime('%d %b %Y') }}</span>
+        </li>
+        <li>
+          <span class="label">Role</span>
+          <span class="value text-capitalize">{{ current_user.role }}</span>
+        </li>
+        {% if current_user.department %}
+        <li>
+          <span class="label">Department</span>
+          <span class="value">{{ current_user.department }}</span>
+        </li>
+        {% endif %}
+        <li>
+          <span class="label">Account Status</span>
+          <span class="value">
+            {% if current_user.is_active %}
+              <span class="badge bg-success-subtle text-success">Active</span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger">Inactive</span>
+            {% endif %}
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    {# --- Security tips --- #}
+    <div class="pr-security-card">
+      <h6><i class="bi bi-shield-lock-fill"></i> Account Security</h6>
+      <ul>
+        <li>Change your password regularly</li>
+        <li>Never share your credentials with anyone</li>
+        <li>Log out on shared devices</li>
+        <li>Report suspicious activity to admin</li>
+      </ul>
+    </div>
+
+  </div>
+
+  {# ============ RIGHT COLUMN: FORMS ============ #}
+  <div class="col-lg-8">
+
+    {# --- Profile Information --- #}
+    <div class="pr-card">
+      <div class="pr-card-head">
+        <div class="pr-card-head-icon">
+          <i class="bi bi-person-gear"></i>
+        </div>
+        <div>
+          <h6>Personal Information</h6>
+          <small>Update your profile details</small>
+        </div>
+      </div>
+
+      <form method="post" id="profileForm">
+        <input type="hidden" name="action" value="profile">
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="pr-field">
+              <label for="name">
+                Full Name <span class="required">*</span>
+              </label>
+              <input type="text" id="name" name="name"
+                     value="{{ current_user.name }}"
+                     required minlength="3" maxlength="120"
+                     placeholder="Enter your full name">
+              <div class="hint">At least 3 characters</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="pr-field">
+              <label for="email">Email Address</label>
+              <input type="email" id="email"
+                     value="{{ current_user.email }}"
+                     readonly>
+              <div class="hint">
+                <i class="bi bi-lock-fill"></i>
+                Email is used for login and cannot be changed
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="pr-field">
+              <label for="phone">Phone Number</label>
+              <input type="text" id="phone" name="phone"
+                     value="{{ current_user.phone or '' }}"
+                     maxlength="11" pattern="[0-9]*"
+                     placeholder="e.g. 01712345678">
+              <div class="hint">11 digits (optional)</div>
+            </div>
+          </div>
+
+          {% if current_user.role in ['officer', 'admin'] %}
+          <div class="col-md-6">
+            <div class="pr-field">
+              <label for="department">Department</label>
+              <input type="text" id="department"
+                     value="{{ current_user.department or 'Not assigned' }}"
+                     readonly>
+              <div class="hint">Contact admin to change</div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-12">
+            <div class="pr-field">
+              <label for="address">Address</label>
+              <textarea id="address" name="address"
+                        maxlength="255"
+                        placeholder="Your address or location">{{ current_user.address or '' }}</textarea>
+              <div class="hint">Optional · Max 255 characters</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+          <button type="submit" class="pr-btn-primary" id="profileSubmitBtn">
+            <i class="bi bi-check2-circle me-1"></i> Save Changes
+          </button>
+          <button type="reset" class="pr-btn-secondary">
+            <i class="bi bi-arrow-clockwise me-1"></i> Reset
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {# --- Change Password --- #}
+    <div class="pr-card">
+      <div class="pr-card-head">
+        <div class="pr-card-head-icon" style="background:#fef3c7;color:#d97706;">
+          <i class="bi bi-shield-lock"></i>
+        </div>
+        <div>
+          <h6>Change Password</h6>
+          <small>Keep your account secure</small>
+        </div>
+      </div>
+
+      <form method="post" id="passwordForm">
+        <input type="hidden" name="action" value="password">
+
+        <div class="pr-field">
+          <label for="old_password">
+            Current Password <span class="required">*</span>
+          </label>
+          <input type="password" id="old_password" name="old_password"
+                 required
+                 placeholder="Enter current password">
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="pr-field">
+              <label for="new_password">
+                New Password <span class="required">*</span>
+              </label>
+              <input type="password" id="new_password" name="new_password"
+                     required minlength="6"
+                     placeholder="At least 6 characters">
+              <div class="pr-pw-meter" id="pwMeter">
+                <div></div><div></div><div></div><div></div><div></div>
+              </div>
+              <div class="hint" id="pwHint">Minimum 6 characters</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="pr-field">
+              <label for="confirm_password">
+                Confirm New Password <span class="required">*</span>
+              </label>
+              <input type="password" id="confirm_password" name="confirm_password"
+                     required minlength="6"
+                     placeholder="Re-enter new password">
+              <div class="hint" id="confirmHint">&nbsp;</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+          <button type="submit" class="pr-btn-primary" id="passwordSubmitBtn">
+            <i class="bi bi-key-fill me-1"></i> Change Password
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  /* Password strength meter */
+  const newPw = document.getElementById('new_password');
+  const confirmPw = document.getElementById('confirm_password');
+  const meter = document.getElementById('pwMeter');
+  const pwHint = document.getElementById('pwHint');
+  const confirmHint = document.getElementById('confirmHint');
+
+  function scorePassword(pw) {
+    let score = 0;
+    if (pw.length >= 6) score++;
+    if (pw.length >= 10) score++;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+    if (/\d/.test(pw)) score++;
+    if (/[^a-zA-Z0-9]/.test(pw)) score++;
+    return score;
+  }
+
+  function updateMeter() {
+    const pw = newPw.value;
+    const score = scorePassword(pw);
+    meter.className = 'pr-pw-meter';
+    if (pw.length > 0) meter.classList.add('s' + score);
+    const labels = ['Too weak', 'Weak', 'Fair', 'Good', 'Strong', 'Very strong'];
+    const colors = ['#6b7280', '#ef4444', '#f59e0b', '#eab308', '#84cc16', '#10b981'];
+    pwHint.textContent = pw.length === 0 ? 'Minimum 6 characters' : labels[score];
+    pwHint.style.color = pw.length === 0 ? '#6b7280' : colors[score];
+  }
+
+  function checkConfirm() {
+    if (!confirmPw.value) {
+      confirmHint.innerHTML = '&nbsp;';
+      return;
+    }
+    if (newPw.value === confirmPw.value) {
+      confirmHint.textContent = '✓ Passwords match';
+      confirmHint.className = 'hint success';
+    } else {
+      confirmHint.textContent = '✗ Passwords do not match';
+      confirmHint.className = 'hint danger';
+    }
+  }
+
+  if (newPw) {
+    newPw.addEventListener('input', updateMeter);
+    confirmPw.addEventListener('input', checkConfirm);
+  }
+
+  /* Password form submit guard */
+  const passwordForm = document.getElementById('passwordForm');
+  if (passwordForm) {
+    passwordForm.addEventListener('submit', function (e) {
+      if (newPw.value !== confirmPw.value) {
+        e.preventDefault();
+        confirmPw.focus();
+        return;
+      }
+      const btn = document.getElementById('passwordSubmitBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+      }
+    });
+  }
+
+  /* Profile form loading */
+  const profileForm = document.getElementById('profileForm');
+  if (profileForm) {
+    profileForm.addEventListener('submit', function () {
+      const btn = document.getElementById('profileSubmitBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+      }
+    });
+  }
+
+  /* Phone digits only */
+  const phoneInput = document.getElementById('phone');
+  if (phoneInput) {
+    phoneInput.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 11);
+    });
+  }
+})();
+</script>
+{% endblock %}
