@@ -398,4 +398,3 @@ This project was developed for academic purposes as part of the System Analysis 
 
 ---
 
-⭐ **If you like this project, don't forget to star ⭐ the repository!**
